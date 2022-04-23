@@ -35,8 +35,6 @@ pub struct TextureA(pub Handle<Image>);
 
 pub struct TextureAPipeline {
     texture_a_bind_group_layout: BindGroupLayout,
-    // init_pipeline: CachedComputePipelineId,
-    // update_pipeline: CachedComputePipelineId,
 }
 
 impl FromWorld for TextureAPipeline {
@@ -57,16 +55,8 @@ impl FromWorld for TextureAPipeline {
                 }],
             });
 
-        // let shader = world
-        //     .resource::<AssetServer>()
-        //     .load("shaders/texture_a.wgsl");
-
-        // let mut pipeline_cache = world.resource_mut::<PipelineCache>();
-
         TextureAPipeline {
             texture_a_bind_group_layout,
-            // init_pipeline,
-            // update_pipeline,
         }
     }
 }
@@ -100,33 +90,6 @@ pub fn queue_bind_group_a(
         entry_point: Cow::from("update"),
     });
 
-    // let init_pipeline = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
-    //     label: None,
-    //     layout: Some(vec![
-    //         main_image_pipeline.main_image_group_layout.clone(),
-    //         main_image_pipeline.texture_a_group_layout.clone(),
-    //         main_image_pipeline.texture_b_group_layout.clone(),
-    //     ]),
-    //     // shader: shader_typed_handle.clone(),
-    //     shader: shader_handle.clone(),
-    //     // shader: Shader::default(),
-    //     shader_defs: vec![],
-    //     entry_point: Cow::from("init"),
-    // });
-
-    // let update_pipeline = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
-    //     label: None,
-    //     layout: Some(vec![
-    //         main_image_pipeline.main_image_group_layout.clone(),
-    //         main_image_pipeline.texture_a_group_layout.clone(),
-    //         main_image_pipeline.texture_b_group_layout.clone(),
-    //     ]), // add particles here
-    //     // shader: shader_typed_handle,
-    //     shader: shader_handle.clone(),
-    //     shader_defs: vec![],
-    //     entry_point: Cow::from("update"),
-    // });
-
     let view = &gpu_images[&texture_a.0];
 
     let texture_a_bind_group = render_device.create_bind_group(&BindGroupDescriptor {
@@ -159,8 +122,6 @@ impl Default for TextureANode {
 
 impl render_graph::Node for TextureANode {
     fn update(&mut self, world: &mut World) {
-        // let pipeline = world.resource::<TextureAPipeline>();
-        // let pipeline2 = world.resource::<TextureAPipeline2>();
         let pipeline_cache = world.resource::<PipelineCache>();
 
         let bind_group = world.resource::<TextureABindGroup>();
@@ -197,14 +158,11 @@ impl render_graph::Node for TextureANode {
         let bind_group = world.resource::<TextureABindGroup>();
 
         let texture_a_bind_group = &bind_group.texture_a_bind_group;
+
         let init_pipeline_cache = bind_group.init_pipeline;
         let update_pipeline_cache = bind_group.update_pipeline;
 
-        // let particle_bind_group = &world.resource::<ParticleBindGroup>().0;
-
         let pipeline_cache = world.resource::<PipelineCache>();
-        // let pipeline = world.resource::<TextureAPipeline>();
-        // let pipeline2 = world.resource::<TextureAPipeline>();
 
         let mut pass = render_context
             .command_encoder

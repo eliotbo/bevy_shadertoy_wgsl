@@ -1,11 +1,19 @@
-[[group(0), binding(0)]]
-var texture: texture_storage_2d<rgba8unorm, read_write>;
 
-[[group(1), binding(0)]]
+
+[[group(0), binding(0)]]
 var buffer_a: texture_storage_2d<rgba8unorm, read_write>;
 
-[[group(2), binding(0)]]
+[[group(1), binding(0)]]
 var buffer_b: texture_storage_2d<rgba8unorm, read_write>;
+
+[[group(2), binding(0)]]
+var buffer_c: texture_storage_2d<rgba8unorm, read_write>;
+
+[[group(3), binding(0)]]
+var buffer_d: texture_storage_2d<rgba8unorm, read_write>;
+
+[[group(4), binding(0)]]
+var texture: texture_storage_2d<rgba8unorm, read_write>;
 
 {{COMMON}}
 
@@ -69,22 +77,31 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
         alive = false;
     }
 
-    let value: vec4<f32> = textureLoad(buffer_b, vec2<i32>(0,1));
-    if (value.x > 0.7) {
+    // let value: vec4<f32> = textureLoad(buffer_a, vec2<i32>(0,1));
+    // if (value.x > 0.51) {
+    //     alive = false;
+    // }
+
+    // let value: vec4<f32> = textureLoad(buffer_b, vec2<i32>(0,1));
+    // if (value.x > 0.74) {
+    //     alive = false;
+    // }
+
+
+    // let value: vec4<f32> = textureLoad(buffer_c, vec2<i32>(0,1));
+    // if (value.x < 0.61) {
+    //     alive = false;
+    // }
+
+    let value: vec4<f32> = textureLoad(buffer_d, vec2<i32>(0,1));
+    if (value.x > 0.79) {
         alive = false;
     }
 
-    let value: vec4<f32> = textureLoad(buffer_a, vec2<i32>(0,1));
-    if (value.x > 0.6) {
-        alive = false;
-    }
-    // alive = false;
 
-    
-
-    if (xxx < 0.5) {
-        alive = false;
-    }
+    // if (xxx < 0.5) {
+    //     alive = false;
+    // }
 
 
     storageBarrier();

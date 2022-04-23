@@ -1,5 +1,5 @@
 [package]
-name = "bevy_shadertoy_lite"
+name = "bevy_shadertoy_wgsl"
 version = "0.1.0"
 edition = "2021"
 

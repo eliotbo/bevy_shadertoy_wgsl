@@ -24,25 +24,44 @@ use bytemuck::bytes_of;
 use rand::*;
 use std::{borrow::Cow, cmp::Ordering, num::NonZeroU64, ops::Deref, ops::Range};
 
+use crate::textureB::TextureB;
 use crate::{GameOfLifeState, ShaderHandles, SIZE, WORKGROUP_SIZE};
 
-struct TextureBBindGroup {
+struct TextureCBindGroup {
     texture_b_bind_group: BindGroup,
     texture_a_bind_group: BindGroup,
+    texture_c_bind_group: BindGroup,
     init_pipeline: CachedComputePipelineId,
     update_pipeline: CachedComputePipelineId,
 }
 
 #[derive(Deref)]
-pub struct TextureB(pub Handle<Image>);
+pub struct TextureC(pub Handle<Image>);
 
-pub struct TextureBPipeline {
+pub struct TextureCPipeline {
     texture_a_bind_group_layout: BindGroupLayout,
     texture_b_bind_group_layout: BindGroupLayout,
+    texture_c_bind_group_layout: BindGroupLayout,
 }
 
-impl FromWorld for TextureBPipeline {
+impl FromWorld for TextureCPipeline {
     fn from_world(world: &mut World) -> Self {
+        let texture_c_bind_group_layout = world
+            .resource::<RenderDevice>()
+            .create_bind_group_layout(&BindGroupLayoutDescriptor {
+                label: None,
+                entries: &[BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: ShaderStages::COMPUTE,
+                    ty: BindingType::StorageTexture {
+                        access: StorageTextureAccess::ReadWrite,
+                        format: TextureFormat::Rgba8Unorm,
+                        view_dimension: TextureViewDimension::D2,
+                    },
+                    count: None,
+                }],
+            });
+
         let texture_b_bind_group_layout = world
             .resource::<RenderDevice>()
             .create_bind_group_layout(&BindGroupLayoutDescriptor {
@@ -79,21 +98,23 @@ impl FromWorld for TextureBPipeline {
         //     .resource::<AssetServer>()
         //     .load("shaders/texture_b.wgsl");
 
-        TextureBPipeline {
+        TextureCPipeline {
+            texture_c_bind_group_layout,
             texture_b_bind_group_layout,
             texture_a_bind_group_layout,
         }
     }
 }
 
-pub fn extract_texture_b(mut commands: Commands, image: Res<TextureB>) {
-    commands.insert_resource(TextureB(image.clone()));
+pub fn extract_texture_c(mut commands: Commands, image: Res<TextureC>) {
+    commands.insert_resource(TextureC(image.clone()));
 }
 
-pub fn queue_bind_group_b(
+pub fn queue_bind_group_c(
     mut commands: Commands,
-    pipeline: Res<TextureBPipeline>,
+    pipeline: Res<TextureCPipeline>,
     gpu_images: Res<RenderAssets<Image>>,
+    texture_c: Res<TextureC>,
     texture_b: Res<TextureB>,
     texture_a: Res<TextureA>,
     render_device: Res<RenderDevice>,
@@ -103,10 +124,14 @@ pub fn queue_bind_group_b(
     let init_pipeline = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
         label: None,
         layout: Some(vec![
+            // pipeline.texture_c_bind_group_layout.clone(),
+            // pipeline.texture_b_bind_group_layout.clone(),
+            // pipeline.texture_a_bind_group_layout.clone(),
             pipeline.texture_a_bind_group_layout.clone(),
             pipeline.texture_b_bind_group_layout.clone(),
+            pipeline.texture_c_bind_group_layout.clone(),
         ]),
-        shader: all_shader_handles.texture_b_shader.clone(),
+        shader: all_shader_handles.texture_c_shader.clone(),
         shader_defs: vec![],
         entry_point: Cow::from("init"),
     });
@@ -116,10 +141,22 @@ pub fn queue_bind_group_b(
         layout: Some(vec![
             pipeline.texture_a_bind_group_layout.clone(),
             pipeline.texture_b_bind_group_layout.clone(),
+            pipeline.texture_c_bind_group_layout.clone(),
         ]),
-        shader: all_shader_handles.texture_b_shader.clone(),
+        shader: all_shader_handles.texture_c_shader.clone(),
         shader_defs: vec![],
         entry_point: Cow::from("update"),
+    });
+
+    let view = &gpu_images[&texture_c.0];
+
+    let texture_c_bind_group = render_device.create_bind_group(&BindGroupDescriptor {
+        label: None,
+        layout: &pipeline.texture_c_bind_group_layout,
+        entries: &[BindGroupEntry {
+            binding: 0,
+            resource: BindingResource::TextureView(&view.texture_view),
+        }],
     });
 
     let view = &gpu_images[&texture_b.0];
@@ -144,7 +181,8 @@ pub fn queue_bind_group_b(
         }],
     });
 
-    commands.insert_resource(TextureBBindGroup {
+    commands.insert_resource(TextureCBindGroup {
+        texture_c_bind_group,
         texture_b_bind_group,
         texture_a_bind_group,
         init_pipeline,
@@ -152,11 +190,11 @@ pub fn queue_bind_group_b(
     });
 }
 
-pub struct TextureBNode {
+pub struct TextureCNode {
     pub state: GameOfLifeState,
 }
 
-impl Default for TextureBNode {
+impl Default for TextureCNode {
     fn default() -> Self {
         Self {
             state: GameOfLifeState::Loading,
@@ -164,9 +202,9 @@ impl Default for TextureBNode {
     }
 }
 
-impl render_graph::Node for TextureBNode {
+impl render_graph::Node for TextureCNode {
     fn update(&mut self, world: &mut World) {
-        let bind_group = world.resource::<TextureBBindGroup>();
+        let bind_group = world.resource::<TextureCBindGroup>();
 
         let pipeline_cache = world.resource::<PipelineCache>();
 
@@ -198,8 +236,9 @@ impl render_graph::Node for TextureBNode {
         render_context: &mut RenderContext,
         world: &World,
     ) -> Result<(), render_graph::NodeRunError> {
-        let bind_group = world.resource::<TextureBBindGroup>();
+        let bind_group = world.resource::<TextureCBindGroup>();
 
+        let texture_c_bind_group = &bind_group.texture_c_bind_group;
         let texture_b_bind_group = &bind_group.texture_b_bind_group;
         let texture_a_bind_group = &bind_group.texture_a_bind_group;
 
@@ -212,8 +251,9 @@ impl render_graph::Node for TextureBNode {
             .command_encoder
             .begin_compute_pass(&ComputePassDescriptor::default());
 
-        pass.set_bind_group(0, texture_a_bind_group, &[]);
+        pass.set_bind_group(2, texture_c_bind_group, &[]);
         pass.set_bind_group(1, texture_b_bind_group, &[]);
+        pass.set_bind_group(0, texture_a_bind_group, &[]);
 
         // select the pipeline based on the current state
         match self.state {
