@@ -1,0 +1,18 @@
+[package]
+name = "bevy_shadertoy_lite"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+bytemuck = "1.5"
+rand = "0.8"
+rand_pcg = "0.3"
+serde = { version = "1.0", features = ["derive"] }
+anyhow = "1.0"
+ron = "0.7"
+bitflags = "1.3"
+bevy_mod_debugdump = "0.3"
+bevy = "0.7"
+
