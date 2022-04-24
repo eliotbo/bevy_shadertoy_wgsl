@@ -38,7 +38,7 @@ fn init([[builtin(global_invocation_id)]] invocation_id: vec3<u32>, [[builtin(nu
 fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
     let location = vec2<i32>(i32(invocation_id.x), i32(invocation_id.y));
 
-094));
+    textureStore(texture_a, location, vec4<f32>(0.094));
 
     // if (uni.iTime > 1.0) {
     //     textureStore(texture_a, location, vec4<f32>(0.65));
