@@ -23,7 +23,9 @@ use bytemuck::bytes_of;
 use rand::*;
 use std::{borrow::Cow, cmp::Ordering, num::NonZeroU64, ops::Deref, ops::Range};
 
-use crate::{GameOfLifeState, ShaderHandles, SIZE, WORKGROUP_SIZE};
+use crate::{
+    CommonUniformMeta, MainImagePipeline, ShaderHandles, ShadertoyState, SIZE, WORKGROUP_SIZE,
+};
 
 struct TextureABindGroup {
     texture_a_bind_group: BindGroup,
@@ -34,50 +36,27 @@ struct TextureABindGroup {
 #[derive(Deref)]
 pub struct TextureA(pub Handle<Image>);
 
-pub struct TextureAPipeline {
-    texture_a_bind_group_layout: BindGroupLayout,
-}
-
-impl FromWorld for TextureAPipeline {
-    fn from_world(world: &mut World) -> Self {
-        let texture_a_bind_group_layout = world
-            .resource::<RenderDevice>()
-            .create_bind_group_layout(&BindGroupLayoutDescriptor {
-                label: None,
-                entries: &[BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: ShaderStages::COMPUTE,
-                    ty: BindingType::StorageTexture {
-                        access: StorageTextureAccess::ReadWrite,
-                        format: TextureFormat::Rgba8Unorm,
-                        view_dimension: TextureViewDimension::D2,
-                    },
-                    count: None,
-                }],
-            });
-
-        TextureAPipeline {
-            texture_a_bind_group_layout,
-        }
-    }
-}
-
 pub fn extract_texture_a(mut commands: Commands, image: Res<TextureA>) {
     commands.insert_resource(TextureA(image.clone()));
 }
 
 pub fn queue_bind_group_a(
     mut commands: Commands,
-    pipeline: Res<TextureAPipeline>,
+    // pipeline: Res<TextureAPipeline>,
+    main_pipeline: Res<MainImagePipeline>,
     gpu_images: Res<RenderAssets<Image>>,
     texture_a: Res<TextureA>,
     render_device: Res<RenderDevice>,
     mut pipeline_cache: ResMut<PipelineCache>,
     all_shader_handles: Res<ShaderHandles>,
+    // mut common_uniform_meta: ResMut<CommonUniformMeta>,
 ) {
     let init_pipeline = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
-        label: Some(Cow::from("init")),
-        layout: Some(vec![pipeline.texture_a_bind_group_layout.clone()]),
+        label: Some(Cow::from("texture_a_init")),
+        layout: Some(vec![
+            main_pipeline.texture_a_bind_group_layout.clone(),
+            // main_pipeline.common_uniform_layout.clone(),
+        ]),
         shader: all_shader_handles.texture_a_shader.clone(),
         shader_defs: vec![],
         entry_point: Cow::from("init"),
@@ -85,7 +64,10 @@ pub fn queue_bind_group_a(
 
     let update_pipeline = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
         label: Some(Cow::from("texture_a_update")),
-        layout: Some(vec![pipeline.texture_a_bind_group_layout.clone()]),
+        layout: Some(vec![
+            main_pipeline.texture_a_bind_group_layout.clone(),
+            // main_pipeline.common_uniform_layout.clone(),
+        ]),
         shader: all_shader_handles.texture_a_shader.clone(),
         shader_defs: vec![],
         entry_point: Cow::from("update"),
@@ -95,12 +77,25 @@ pub fn queue_bind_group_a(
 
     let texture_a_bind_group = render_device.create_bind_group(&BindGroupDescriptor {
         label: None,
-        layout: &pipeline.texture_a_bind_group_layout,
+        layout: &main_pipeline.texture_a_bind_group_layout,
         entries: &[BindGroupEntry {
             binding: 0,
             resource: BindingResource::TextureView(&view.texture_view),
         }],
     });
+
+    // // Common uniform
+    // //
+    // //
+    // let common_uniform_bind_group = render_device.create_bind_group(&BindGroupDescriptor {
+    //     label: None,
+    //     layout: &main_pipeline.common_uniform_layout,
+    //     entries: &[BindGroupEntry {
+    //         binding: 0,
+    //         resource: common_uniform_meta.buffer.as_entire_binding(),
+    //     }],
+    // });
+    // common_uniform_meta.bind_group = Some(common_uniform_bind_group);
 
     commands.insert_resource(TextureABindGroup {
         texture_a_bind_group,
@@ -110,13 +105,13 @@ pub fn queue_bind_group_a(
 }
 
 pub struct TextureANode {
-    pub state: GameOfLifeState,
+    pub state: ShadertoyState,
 }
 
 impl Default for TextureANode {
     fn default() -> Self {
         Self {
-            state: GameOfLifeState::Loading,
+            state: ShadertoyState::Loading,
         }
     }
 }
@@ -132,21 +127,21 @@ impl render_graph::Node for TextureANode {
 
         // if the corresponding pipeline has loaded, transition to the next stage
         match self.state {
-            GameOfLifeState::Loading => {
+            ShadertoyState::Loading => {
                 if let CachedPipelineState::Ok(_) =
                     pipeline_cache.get_compute_pipeline_state(init_pipeline)
                 {
-                    self.state = GameOfLifeState::Init
+                    self.state = ShadertoyState::Init
                 }
             }
-            GameOfLifeState::Init => {
+            ShadertoyState::Init => {
                 if let CachedPipelineState::Ok(_) =
                     pipeline_cache.get_compute_pipeline_state(update_pipeline)
                 {
-                    self.state = GameOfLifeState::Update
+                    self.state = ShadertoyState::Update
                 }
             }
-            GameOfLifeState::Update => {}
+            ShadertoyState::Update => {}
         }
     }
 
@@ -157,6 +152,9 @@ impl render_graph::Node for TextureANode {
         world: &World,
     ) -> Result<(), render_graph::NodeRunError> {
         let bind_group = world.resource::<TextureABindGroup>();
+
+        let common_uniform_meta = world.resource::<CommonUniformMeta>();
+        let common_uni_bind_group = &common_uniform_meta.bind_group.clone().unwrap();
 
         let texture_a_bind_group = &bind_group.texture_a_bind_group;
 
@@ -170,12 +168,13 @@ impl render_graph::Node for TextureANode {
             .begin_compute_pass(&ComputePassDescriptor::default());
 
         pass.set_bind_group(0, texture_a_bind_group, &[]);
+        // pass.set_bind_group(1, common_uni_bind_group, &[]);
 
         // select the pipeline based on the current state
         match self.state {
-            GameOfLifeState::Loading => {}
+            ShadertoyState::Loading => {}
 
-            GameOfLifeState::Init => {
+            ShadertoyState::Init => {
                 let init_pipeline = pipeline_cache
                     .get_compute_pipeline(init_pipeline_cache)
                     .unwrap();
@@ -183,7 +182,7 @@ impl render_graph::Node for TextureANode {
                 pass.dispatch(SIZE.0 / WORKGROUP_SIZE, SIZE.1 / WORKGROUP_SIZE, 1);
             }
 
-            GameOfLifeState::Update => {
+            ShadertoyState::Update => {
                 let update_pipeline = pipeline_cache
                     .get_compute_pipeline(update_pipeline_cache)
                     .unwrap();

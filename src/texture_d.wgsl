@@ -27,7 +27,7 @@ fn init([[builtin(global_invocation_id)]] invocation_id: vec3<u32>, [[builtin(nu
 fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
     let location = vec2<i32>(i32(invocation_id.x), i32(invocation_id.y));
 
-    textureStore(buffer_d, location, vec4<f32>(0.84));
+    textureStore(buffer_d, location, vec4<f32>(0.7));
 
 
 

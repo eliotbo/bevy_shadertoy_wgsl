@@ -76,8 +76,8 @@ fn main() {
     wgpu_options.max_inter_stage_shader_components = 5;
 
     let mut app = App::new();
-    app.insert_resource(wgpu_options)
-        // app.insert_resource(ClearColor(Color::BLACK))
+    // app.insert_resource(wgpu_options)
+    app.insert_resource(ClearColor(Color::BLACK))
         // .insert_resource(WindowDescriptor {
         //     // uncomment for unthrottled FPS
         //     // vsync: false,
@@ -225,7 +225,7 @@ pub struct CommonUniform {
     pub iSampleRate: i32,
 }
 
-struct CommonUniformMeta {
+pub struct CommonUniformMeta {
     // buffer: UniformVec<CommonUniform>,
     buffer: Buffer,
     bind_group: Option<BindGroup>,
@@ -278,7 +278,7 @@ impl Plugin for ShadertoyPlugin {
             .init_resource::<MainImagePipeline>()
             .add_system_to_stage(RenderStage::Extract, extract_main_image)
             .add_system_to_stage(RenderStage::Queue, queue_bind_group)
-            .init_resource::<TextureAPipeline>()
+            // .init_resource::<TextureAPipeline>()
             .add_system_to_stage(RenderStage::Extract, extract_texture_a)
             .add_system_to_stage(RenderStage::Queue, queue_bind_group_a)
             .init_resource::<TextureBPipeline>()
@@ -324,10 +324,10 @@ impl Plugin for ShadertoyPlugin {
 pub struct MainImagePipeline {
     main_image_group_layout: BindGroupLayout,
     common_uniform_layout: BindGroupLayout,
-    texture_a_group_layout: BindGroupLayout,
-    texture_b_group_layout: BindGroupLayout,
-    texture_c_group_layout: BindGroupLayout,
-    texture_d_group_layout: BindGroupLayout,
+    texture_a_bind_group_layout: BindGroupLayout,
+    texture_b_bind_group_layout: BindGroupLayout,
+    texture_c_bind_group_layout: BindGroupLayout,
+    texture_d_bind_group_layout: BindGroupLayout,
 }
 
 impl FromWorld for MainImagePipeline {
@@ -439,10 +439,10 @@ impl FromWorld for MainImagePipeline {
         MainImagePipeline {
             main_image_group_layout,
             common_uniform_layout,
-            texture_a_group_layout,
-            texture_b_group_layout,
-            texture_c_group_layout,
-            texture_d_group_layout,
+            texture_a_bind_group_layout: texture_a_group_layout,
+            texture_b_bind_group_layout: texture_b_group_layout,
+            texture_c_bind_group_layout: texture_c_group_layout,
+            texture_d_bind_group_layout: texture_d_group_layout,
         }
     }
 }
@@ -548,10 +548,10 @@ fn queue_bind_group(
         label: None,
         layout: Some(vec![
             pipeline.common_uniform_layout.clone(),
-            // pipeline.texture_a_group_layout.clone(),
-            pipeline.texture_b_group_layout.clone(),
-            pipeline.texture_c_group_layout.clone(),
-            pipeline.texture_d_group_layout.clone(),
+            pipeline.texture_a_bind_group_layout.clone(),
+            pipeline.texture_b_bind_group_layout.clone(),
+            pipeline.texture_c_bind_group_layout.clone(),
+            pipeline.texture_d_bind_group_layout.clone(),
             pipeline.main_image_group_layout.clone(),
         ]),
         shader: all_shader_handles.image_shader.clone(),
@@ -563,10 +563,10 @@ fn queue_bind_group(
         label: None,
         layout: Some(vec![
             pipeline.common_uniform_layout.clone(),
-            // pipeline.texture_a_group_layout.clone(),
-            pipeline.texture_b_group_layout.clone(),
-            pipeline.texture_c_group_layout.clone(),
-            pipeline.texture_d_group_layout.clone(),
+            pipeline.texture_a_bind_group_layout.clone(),
+            pipeline.texture_b_bind_group_layout.clone(),
+            pipeline.texture_c_bind_group_layout.clone(),
+            pipeline.texture_d_bind_group_layout.clone(),
             pipeline.main_image_group_layout.clone(),
         ]),
         shader: all_shader_handles.image_shader.clone(),
@@ -602,7 +602,7 @@ fn queue_bind_group(
 
     let texture_a_bind_group = render_device.create_bind_group(&BindGroupDescriptor {
         label: None,
-        layout: &pipeline.texture_a_group_layout,
+        layout: &pipeline.texture_a_bind_group_layout,
         entries: &[BindGroupEntry {
             binding: 0,
             resource: BindingResource::TextureView(&view_a.texture_view),
@@ -613,7 +613,7 @@ fn queue_bind_group(
 
     let texture_b_bind_group = render_device.create_bind_group(&BindGroupDescriptor {
         label: None,
-        layout: &pipeline.texture_b_group_layout,
+        layout: &pipeline.texture_b_bind_group_layout,
         entries: &[BindGroupEntry {
             binding: 0,
             resource: BindingResource::TextureView(&view_b.texture_view),
@@ -624,7 +624,7 @@ fn queue_bind_group(
 
     let texture_c_bind_group = render_device.create_bind_group(&BindGroupDescriptor {
         label: None,
-        layout: &pipeline.texture_c_group_layout,
+        layout: &pipeline.texture_c_bind_group_layout,
         entries: &[BindGroupEntry {
             binding: 0,
             resource: BindingResource::TextureView(&view_c.texture_view),
@@ -635,7 +635,7 @@ fn queue_bind_group(
 
     let texture_d_bind_group = render_device.create_bind_group(&BindGroupDescriptor {
         label: None,
-        layout: &pipeline.texture_d_group_layout,
+        layout: &pipeline.texture_d_bind_group_layout,
         entries: &[BindGroupEntry {
             binding: 0,
             resource: BindingResource::TextureView(&view_d.texture_view),
@@ -666,20 +666,20 @@ impl Default for MainUpdatePipelineKey {
     }
 }
 
-pub enum GameOfLifeState {
+pub enum ShadertoyState {
     Loading,
     Init,
     Update,
 }
 
 pub struct MainNode {
-    pub state: GameOfLifeState,
+    pub state: ShadertoyState,
 }
 
 impl Default for MainNode {
     fn default() -> Self {
         Self {
-            state: GameOfLifeState::Loading,
+            state: ShadertoyState::Loading,
         }
     }
 }
@@ -694,21 +694,21 @@ impl render_graph::Node for MainNode {
         let update_pipeline_cache = bind_group.update_pipeline;
 
         match self.state {
-            GameOfLifeState::Loading => {
+            ShadertoyState::Loading => {
                 if let CachedPipelineState::Ok(_) =
                     pipeline_cache.get_compute_pipeline_state(init_pipeline_cache)
                 {
-                    self.state = GameOfLifeState::Init
+                    self.state = ShadertoyState::Init
                 }
             }
-            GameOfLifeState::Init => {
+            ShadertoyState::Init => {
                 if let CachedPipelineState::Ok(_) =
                     pipeline_cache.get_compute_pipeline_state(update_pipeline_cache)
                 {
-                    self.state = GameOfLifeState::Update
+                    self.state = ShadertoyState::Update
                 }
             }
-            GameOfLifeState::Update => {}
+            ShadertoyState::Update => {}
         }
     }
 
@@ -732,19 +732,20 @@ impl render_graph::Node for MainNode {
             .command_encoder
             .begin_compute_pass(&ComputePassDescriptor::default());
 
-        // pass.set_bind_group(0, &bind_group.texture_a_bind_group, &[]);
-        pass.set_bind_group(1, &bind_group.texture_b_bind_group, &[]);
-        pass.set_bind_group(2, &bind_group.texture_c_bind_group, &[]);
-        pass.set_bind_group(3, &bind_group.texture_d_bind_group, &[]);
-        pass.set_bind_group(4, &bind_group.main_image_bind_group, &[]);
+        let k = 2;
+        pass.set_bind_group(k - 2, &common_uni_bind_group, &[]);
 
-        pass.set_bind_group(0, &common_uni_bind_group, &[]);
+        pass.set_bind_group(k - 1, &bind_group.texture_a_bind_group, &[]);
+        pass.set_bind_group(k, &bind_group.texture_b_bind_group, &[]);
+        pass.set_bind_group(k + 1, &bind_group.texture_c_bind_group, &[]);
+        pass.set_bind_group(k + 2, &bind_group.texture_d_bind_group, &[]);
+        pass.set_bind_group(k + 3, &bind_group.main_image_bind_group, &[]);
 
         // select the pipeline based on the current state
         match self.state {
-            GameOfLifeState::Loading => {}
+            ShadertoyState::Loading => {}
 
-            GameOfLifeState::Init => {
+            ShadertoyState::Init => {
                 let init_pipeline = pipeline_cache
                     .get_compute_pipeline(init_pipeline_cache)
                     .unwrap();
@@ -752,7 +753,7 @@ impl render_graph::Node for MainNode {
                 pass.dispatch(SIZE.0 / WORKGROUP_SIZE, SIZE.1 / WORKGROUP_SIZE, 1);
             }
 
-            GameOfLifeState::Update => {
+            ShadertoyState::Update => {
                 let update_pipeline = pipeline_cache
                     .get_compute_pipeline(update_pipeline_cache)
                     .unwrap();

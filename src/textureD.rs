@@ -23,7 +23,7 @@ use crate::textureA::TextureA;
 use crate::textureB::TextureB;
 use crate::textureC::TextureC;
 
-use crate::{GameOfLifeState, ShaderHandles, SIZE, WORKGROUP_SIZE};
+use crate::{ShaderHandles, ShadertoyState, SIZE, WORKGROUP_SIZE};
 
 pub struct TextureDPipeline {
     texture_a_group_layout: BindGroupLayout,
@@ -235,13 +235,13 @@ impl Default for MainUpdatePipelineKey {
 }
 
 pub struct TextureDNode {
-    pub state: GameOfLifeState,
+    pub state: ShadertoyState,
 }
 
 impl Default for TextureDNode {
     fn default() -> Self {
         Self {
-            state: GameOfLifeState::Loading,
+            state: ShadertoyState::Loading,
         }
     }
 }
@@ -256,21 +256,21 @@ impl render_graph::Node for TextureDNode {
         let update_pipeline_cache = bind_group.update_pipeline;
 
         match self.state {
-            GameOfLifeState::Loading => {
+            ShadertoyState::Loading => {
                 if let CachedPipelineState::Ok(_) =
                     pipeline_cache.get_compute_pipeline_state(init_pipeline_cache)
                 {
-                    self.state = GameOfLifeState::Init
+                    self.state = ShadertoyState::Init
                 }
             }
-            GameOfLifeState::Init => {
+            ShadertoyState::Init => {
                 if let CachedPipelineState::Ok(_) =
                     pipeline_cache.get_compute_pipeline_state(update_pipeline_cache)
                 {
-                    self.state = GameOfLifeState::Update
+                    self.state = ShadertoyState::Update
                 }
             }
-            GameOfLifeState::Update => {}
+            ShadertoyState::Update => {}
         }
     }
 
@@ -303,9 +303,9 @@ impl render_graph::Node for TextureDNode {
 
         // select the pipeline based on the current state
         match self.state {
-            GameOfLifeState::Loading => {}
+            ShadertoyState::Loading => {}
 
-            GameOfLifeState::Init => {
+            ShadertoyState::Init => {
                 let init_pipeline = pipeline_cache
                     .get_compute_pipeline(init_pipeline_cache)
                     .unwrap();
@@ -313,7 +313,7 @@ impl render_graph::Node for TextureDNode {
                 pass.dispatch(SIZE.0 / WORKGROUP_SIZE, SIZE.1 / WORKGROUP_SIZE, 1);
             }
 
-            GameOfLifeState::Update => {
+            ShadertoyState::Update => {
                 let update_pipeline = pipeline_cache
                     .get_compute_pipeline(update_pipeline_cache)
                     .unwrap();
