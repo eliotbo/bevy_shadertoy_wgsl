@@ -6,11 +6,12 @@ use bevy::{
         render_asset::RenderAssets,
         render_graph::{self, RenderGraph},
         // render_resource::*,
-        render_resource::*,
-        renderer::{RenderContext, RenderDevice},
+        render_resource::{std140::AsStd140, *},
+        renderer::{RenderContext, RenderDevice, RenderQueue},
         RenderApp,
         RenderStage,
     },
+    window::WindowResized,
 };
 
 use std::borrow::Cow;
@@ -86,6 +87,7 @@ fn main() {
         .add_system(bevy::input::system::exit_on_esc_system)
         .add_plugin(ShadertoyPlugin)
         .add_startup_system(setup)
+        .add_system(update_common_uniform)
         .run();
 }
 
@@ -117,6 +119,8 @@ fn setup(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
         texture: image.clone(),
         ..default()
     });
+
+    commands.insert_resource(CommonUniform::default());
 
     //
     //
@@ -207,6 +211,41 @@ fn setup(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
     commands.insert_resource(TextureD(texture_d));
 }
 
+#[derive(Component, Default, Clone, AsStd140)]
+pub struct CommonUniform {
+    pub iResolution: Vec2,
+    pub iTime: f32,
+    pub iTimeDelta: f32,
+    pub iFrame: i32,
+    pub iChannelTime: Vec4,
+
+    pub iChannelResolution: Vec4,
+    pub iMouse: Vec2,
+    pub iDate: [i32; 4],
+    pub iSampleRate: i32,
+}
+
+struct CommonUniformMeta {
+    // buffer: UniformVec<CommonUniform>,
+    buffer: Buffer,
+    bind_group: Option<BindGroup>,
+}
+
+fn update_common_uniform(
+    mut common_uniform: ResMut<CommonUniform>,
+    mut window_resize_event: EventReader<WindowResized>,
+    time: Res<Time>,
+) {
+    // update resolution
+    for window_resize in window_resize_event.iter() {
+        common_uniform.iResolution.x = window_resize.width;
+        common_uniform.iResolution.y = window_resize.height;
+    }
+    // update time
+    common_uniform.iTime = time.seconds_since_startup() as f32;
+    common_uniform.iTimeDelta = time.delta_seconds() as f32;
+}
+
 pub struct ShadertoyPlugin;
 
 pub struct ShaderHandles {
@@ -220,7 +259,22 @@ pub struct ShaderHandles {
 impl Plugin for ShadertoyPlugin {
     fn build(&self, app: &mut App) {
         let render_app = app.sub_app_mut(RenderApp);
+
+        let render_device = render_app.world.resource::<RenderDevice>();
+
+        let buffer = render_device.create_buffer(&BufferDescriptor {
+            label: Some("common uniform buffer"),
+            size: CommonUniform::std140_size_static() as u64,
+            usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
         render_app
+            .insert_resource(CommonUniformMeta {
+                buffer,
+                bind_group: None,
+            })
+            .add_system_to_stage(RenderStage::Prepare, prepare_common_uniform)
             .init_resource::<MainImagePipeline>()
             .add_system_to_stage(RenderStage::Extract, extract_main_image)
             .add_system_to_stage(RenderStage::Queue, queue_bind_group)
@@ -269,6 +323,7 @@ impl Plugin for ShadertoyPlugin {
 
 pub struct MainImagePipeline {
     main_image_group_layout: BindGroupLayout,
+    common_uniform_layout: BindGroupLayout,
     texture_a_group_layout: BindGroupLayout,
     texture_b_group_layout: BindGroupLayout,
     texture_c_group_layout: BindGroupLayout,
@@ -362,8 +417,28 @@ impl FromWorld for MainImagePipeline {
                     }],
                 });
 
+        let common_uniform_layout =
+            world
+                .resource::<RenderDevice>()
+                .create_bind_group_layout(&BindGroupLayoutDescriptor {
+                    entries: &[BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: ShaderStages::COMPUTE,
+                        ty: BindingType::Buffer {
+                            ty: BufferBindingType::Uniform,
+                            has_dynamic_offset: false,
+                            min_binding_size: BufferSize::new(
+                                CommonUniform::std140_size_static() as u64
+                            ),
+                        },
+                        count: None,
+                    }],
+                    label: Some("common_uniform_layout"),
+                });
+
         MainImagePipeline {
             main_image_group_layout,
+            common_uniform_layout,
             texture_a_group_layout,
             texture_b_group_layout,
             texture_c_group_layout,
@@ -403,7 +478,11 @@ fn extract_main_image(
     mut commands: Commands,
     image: Res<MainImage>,
     mut shaders: ResMut<Assets<Shader>>,
+    common_uniform: Res<CommonUniform>,
 ) {
+    // insert common uniform only once: texture a, b, c and d retrieve it in their queue functions
+    commands.insert_resource(common_uniform.clone());
+
     commands.insert_resource(MainImage(image.clone()));
 
     let image_shader_handle = import_shader(IMAGE_SHADER, IMAGE_SHADER_HANDLE, &mut shaders);
@@ -431,6 +510,23 @@ fn extract_main_image(
     commands.insert_resource(all_shader_handles);
 }
 
+// write the extracted common uniform into the corresponding uniform buffer
+fn prepare_common_uniform(
+    common_uniform_meta: ResMut<CommonUniformMeta>,
+    render_queue: Res<RenderQueue>,
+    common_uniform: Res<CommonUniform>,
+) {
+    use bevy::render::render_resource::std140::Std140;
+    let std140_common_uniform = common_uniform.as_std140();
+    let bytes = std140_common_uniform.as_bytes();
+
+    render_queue.write_buffer(
+        &common_uniform_meta.buffer,
+        0,
+        bevy::core::cast_slice(&bytes),
+    );
+}
+
 fn queue_bind_group(
     mut commands: Commands,
     pipeline: Res<MainImagePipeline>,
@@ -445,11 +541,14 @@ fn queue_bind_group(
     mut pipeline_cache: ResMut<PipelineCache>,
     // main_image_pipeline: Res<MainImagePipeline>,
     all_shader_handles: Res<ShaderHandles>,
+    mut common_uniform_meta: ResMut<CommonUniformMeta>,
+    // render_device: Res<RenderDevice>,
 ) {
     let init_pipeline = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
         label: None,
         layout: Some(vec![
-            pipeline.texture_a_group_layout.clone(),
+            pipeline.common_uniform_layout.clone(),
+            // pipeline.texture_a_group_layout.clone(),
             pipeline.texture_b_group_layout.clone(),
             pipeline.texture_c_group_layout.clone(),
             pipeline.texture_d_group_layout.clone(),
@@ -463,7 +562,8 @@ fn queue_bind_group(
     let update_pipeline = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
         label: None,
         layout: Some(vec![
-            pipeline.texture_a_group_layout.clone(),
+            pipeline.common_uniform_layout.clone(),
+            // pipeline.texture_a_group_layout.clone(),
             pipeline.texture_b_group_layout.clone(),
             pipeline.texture_c_group_layout.clone(),
             pipeline.texture_d_group_layout.clone(),
@@ -473,6 +573,19 @@ fn queue_bind_group(
         shader_defs: vec![],
         entry_point: Cow::from("update"),
     });
+
+    // Common uniform
+    //
+    //
+    let common_uniform_bind_group = render_device.create_bind_group(&BindGroupDescriptor {
+        label: None,
+        layout: &pipeline.common_uniform_layout,
+        entries: &[BindGroupEntry {
+            binding: 0,
+            resource: common_uniform_meta.buffer.as_entire_binding(),
+        }],
+    });
+    common_uniform_meta.bind_group = Some(common_uniform_bind_group);
 
     let view = &gpu_images[&main_image.0];
 
@@ -607,6 +720,9 @@ impl render_graph::Node for MainNode {
     ) -> Result<(), render_graph::NodeRunError> {
         let bind_group = world.resource::<MainImageBindGroup>();
 
+        let common_uniform_meta = world.resource::<CommonUniformMeta>();
+        let common_uni_bind_group = common_uniform_meta.bind_group.clone().unwrap();
+
         let init_pipeline_cache = bind_group.init_pipeline;
         let update_pipeline_cache = bind_group.update_pipeline;
 
@@ -616,11 +732,13 @@ impl render_graph::Node for MainNode {
             .command_encoder
             .begin_compute_pass(&ComputePassDescriptor::default());
 
-        pass.set_bind_group(0, &bind_group.texture_a_bind_group, &[]);
+        // pass.set_bind_group(0, &bind_group.texture_a_bind_group, &[]);
         pass.set_bind_group(1, &bind_group.texture_b_bind_group, &[]);
         pass.set_bind_group(2, &bind_group.texture_c_bind_group, &[]);
         pass.set_bind_group(3, &bind_group.texture_d_bind_group, &[]);
         pass.set_bind_group(4, &bind_group.main_image_bind_group, &[]);
+
+        pass.set_bind_group(0, &common_uni_bind_group, &[]);
 
         // select the pipeline based on the current state
         match self.state {

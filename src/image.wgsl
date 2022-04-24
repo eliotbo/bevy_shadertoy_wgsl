@@ -1,7 +1,7 @@
 
 
-[[group(0), binding(0)]]
-var buffer_a: texture_storage_2d<rgba8unorm, read_write>;
+// [[group(0), binding(0)]]
+// var buffer_a: texture_storage_2d<rgba8unorm, read_write>;
 
 [[group(1), binding(0)]]
 var buffer_b: texture_storage_2d<rgba8unorm, read_write>;
@@ -14,6 +14,23 @@ var buffer_d: texture_storage_2d<rgba8unorm, read_write>;
 
 [[group(4), binding(0)]]
 var texture: texture_storage_2d<rgba8unorm, read_write>;
+
+struct CommonUniform {
+    iResolution: vec2<f32>;
+    
+    iTime: f32;
+    iTimeDelta: f32;
+    iFrame: i32;
+    iChannelTime: vec4<f32>;
+
+    iChannelResolution: vec4<f32>;
+    iMouse: vec2<f32>;
+    iDate: vec4<i32>;
+    iSampleRate: i32;
+};
+
+[[group(0), binding(0)]]
+var<uniform> uni: CommonUniform;
 
 {{COMMON}}
 
@@ -93,10 +110,15 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
     //     alive = false;
     // }
 
-    let value: vec4<f32> = textureLoad(buffer_d, vec2<i32>(0,1));
-    if (value.x > 0.79) {
-        alive = false;
-    }
+    // let value: vec4<f32> = textureLoad(buffer_d, vec2<i32>(0,1));
+    // if (value.x > 0.79) {
+    //     alive = false;
+    // }
+
+    // if (uni.iTime > 2.0) {
+    //     alive = false;
+    // }
+    
 
 
     // if (xxx < 0.5) {

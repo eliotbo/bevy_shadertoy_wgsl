@@ -7,6 +7,7 @@ use bevy::{
         render_graph::{self, RenderGraph},
         // render_resource::*,
         render_resource::{
+            std140::AsStd140,
             std430::{AsStd430, Std430},
             *,
         },

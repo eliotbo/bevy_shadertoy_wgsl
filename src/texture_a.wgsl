@@ -1,6 +1,23 @@
 [[group(0), binding(0)]]
 var texture_a: texture_storage_2d<rgba8unorm, read_write>;
 
+struct CommonUniform {
+    iResolution: vec2<f32>;
+
+    iTime: f32;
+    iTimeDelta: f32;
+    iFrame: i32;
+    iChannelTime: vec4<f32>;
+
+    iChannelResolution: vec4<f32>;
+    iMouse: vec2<f32>;
+    iDate: vec4<i32>;
+    iSampleRate: i32;
+};
+
+// [[group(0), binding(1)]]
+// var<uniform> uni: CommonUniform;
+
 {{COMMON}}
 
 [[stage(compute), workgroup_size(8, 8, 1)]]
