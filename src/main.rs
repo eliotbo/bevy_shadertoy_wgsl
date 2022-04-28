@@ -68,12 +68,12 @@ pub const TEXTURE_D_SHADER_HANDLE: HandleUntyped = HandleUntyped::weak_from_u64(
 );
 
 fn main() {
-    // not sure this works on wasm
-    let mut wgpu_options = WgpuLimits::default();
-    wgpu_options.max_bind_groups = 5;
-    wgpu_options.max_storage_buffers_per_shader_stage = 5;
-    wgpu_options.max_storage_textures_per_shader_stage = 5;
-    wgpu_options.max_inter_stage_shader_components = 5;
+    // // not sure this works on wasm
+    // let mut wgpu_options = WgpuLimits::default();
+    // wgpu_options.max_bind_groups = 5;
+    // wgpu_options.max_storage_buffers_per_shader_stage = 5;
+    // wgpu_options.max_storage_textures_per_shader_stage = 5;
+    // wgpu_options.max_inter_stage_shader_components = 5;
 
     let mut app = App::new();
     // app.insert_resource(wgpu_options)
@@ -213,22 +213,23 @@ fn setup(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
 
 #[derive(Component, Default, Clone, AsStd140)]
 pub struct CommonUniform {
-    pub iResolution: Vec2,
     pub iTime: f32,
     pub iTimeDelta: f32,
     pub iFrame: i32,
-    pub iChannelTime: Vec4,
-
-    pub iChannelResolution: Vec4,
-    pub iMouse: Vec2,
-    pub iDate: [i32; 4],
     pub iSampleRate: i32,
+
+    pub iChannelTime: Vec4,
+    pub iChannelResolution: Vec4,
+    pub iDate: [i32; 4],
+
+    pub iResolution: Vec2,
+    pub iMouse: Vec2,
 }
 
 pub struct CommonUniformMeta {
     // buffer: UniformVec<CommonUniform>,
     buffer: Buffer,
-    bind_group: Option<BindGroup>,
+    // bind_group: Option<BindGroup>,
 }
 
 fn update_common_uniform(
@@ -244,6 +245,8 @@ fn update_common_uniform(
     // update time
     common_uniform.iTime = time.seconds_since_startup() as f32;
     common_uniform.iTimeDelta = time.delta_seconds() as f32;
+
+    // println!("{:?}", common_uniform.iTime);
 }
 
 pub struct ShadertoyPlugin;
@@ -271,14 +274,19 @@ impl Plugin for ShadertoyPlugin {
 
         render_app
             .insert_resource(CommonUniformMeta {
-                buffer,
-                bind_group: None,
+                buffer: buffer.clone(),
+                // bind_group: None,
             })
+            // .insert_resource(CommonUniformMetaA {
+            //     buffer: buffer.clone(),
+            // })
+            // .add_system_to_stage(RenderStage::Prepare, prepare_common_uniform)
             .add_system_to_stage(RenderStage::Prepare, prepare_common_uniform)
+            // .add_system_to_stage(RenderStage::Prepare, prepare_common_uniform_a)
             .init_resource::<MainImagePipeline>()
             .add_system_to_stage(RenderStage::Extract, extract_main_image)
             .add_system_to_stage(RenderStage::Queue, queue_bind_group)
-            // .init_resource::<TextureAPipeline>()
+            .init_resource::<TextureAPipeline>()
             .add_system_to_stage(RenderStage::Extract, extract_texture_a)
             .add_system_to_stage(RenderStage::Queue, queue_bind_group_a)
             .init_resource::<TextureBPipeline>()
@@ -296,23 +304,27 @@ impl Plugin for ShadertoyPlugin {
         render_graph.add_node("main_image", MainNode::default());
         render_graph.add_node("texture_a", TextureANode::default());
         render_graph.add_node("texture_b", TextureBNode::default());
-        render_graph.add_node("texture_c", TextureCNode::default());
-        render_graph.add_node("texture_d", TextureDNode::default());
+        // // render_graph.add_node("texture_c", TextureCNode::default());
+        // // render_graph.add_node("texture_d", TextureDNode::default());
+
+        // render_graph
+        //     .add_node_edge("texture_a", "texture_b")
+        //     .unwrap();
+
+        // // render_graph
+        // //     .add_node_edge("texture_b", "texture_c")
+        // //     .unwrap();
+
+        // // render_graph
+        // //     .add_node_edge("texture_c", "texture_d")
+        // //     .unwrap();
+
+        // // render_graph
+        // //     .add_node_edge("texture_d", "main_image")
+        // //     .unwrap();
 
         render_graph
-            .add_node_edge("texture_a", "texture_b")
-            .unwrap();
-
-        render_graph
-            .add_node_edge("texture_b", "texture_c")
-            .unwrap();
-
-        render_graph
-            .add_node_edge("texture_c", "texture_d")
-            .unwrap();
-
-        render_graph
-            .add_node_edge("texture_d", "main_image")
+            .add_node_edge("texture_b", "main_image")
             .unwrap();
 
         render_graph
@@ -323,11 +335,6 @@ impl Plugin for ShadertoyPlugin {
 
 pub struct MainImagePipeline {
     main_image_group_layout: BindGroupLayout,
-    common_uniform_layout: BindGroupLayout,
-    texture_a_bind_group_layout: BindGroupLayout,
-    texture_b_bind_group_layout: BindGroupLayout,
-    texture_c_bind_group_layout: BindGroupLayout,
-    texture_d_bind_group_layout: BindGroupLayout,
 }
 
 impl FromWorld for MainImagePipeline {
@@ -336,113 +343,55 @@ impl FromWorld for MainImagePipeline {
             world
                 .resource::<RenderDevice>()
                 .create_bind_group_layout(&BindGroupLayoutDescriptor {
-                    label: None,
-                    entries: &[BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: ShaderStages::COMPUTE,
-                        ty: BindingType::StorageTexture {
-                            access: StorageTextureAccess::ReadWrite,
-                            format: TextureFormat::Rgba8Unorm,
-                            view_dimension: TextureViewDimension::D2,
+                    label: Some("main_layout"),
+                    entries: &[
+                        BindGroupLayoutEntry {
+                            binding: 0,
+                            visibility: ShaderStages::COMPUTE,
+                            ty: BindingType::Buffer {
+                                ty: BufferBindingType::Uniform,
+                                has_dynamic_offset: false,
+                                min_binding_size: BufferSize::new(
+                                    CommonUniform::std140_size_static() as u64,
+                                ),
+                            },
+                            count: None,
                         },
-                        count: None,
-                    }],
-                });
-
-        let texture_a_group_layout =
-            world
-                .resource::<RenderDevice>()
-                .create_bind_group_layout(&BindGroupLayoutDescriptor {
-                    label: None,
-                    entries: &[BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: ShaderStages::COMPUTE,
-                        ty: BindingType::StorageTexture {
-                            access: StorageTextureAccess::ReadWrite,
-                            format: TextureFormat::Rgba8Unorm,
-                            view_dimension: TextureViewDimension::D2,
+                        BindGroupLayoutEntry {
+                            binding: 1,
+                            visibility: ShaderStages::COMPUTE,
+                            ty: BindingType::StorageTexture {
+                                access: StorageTextureAccess::ReadWrite,
+                                format: TextureFormat::Rgba8Unorm,
+                                view_dimension: TextureViewDimension::D2,
+                            },
+                            count: None,
                         },
-                        count: None,
-                    }],
-                });
-
-        let texture_b_group_layout =
-            world
-                .resource::<RenderDevice>()
-                .create_bind_group_layout(&BindGroupLayoutDescriptor {
-                    label: None,
-                    entries: &[BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: ShaderStages::COMPUTE,
-                        ty: BindingType::StorageTexture {
-                            access: StorageTextureAccess::ReadWrite,
-                            format: TextureFormat::Rgba8Unorm,
-                            view_dimension: TextureViewDimension::D2,
+                        BindGroupLayoutEntry {
+                            binding: 2,
+                            visibility: ShaderStages::COMPUTE,
+                            ty: BindingType::StorageTexture {
+                                access: StorageTextureAccess::ReadWrite,
+                                format: TextureFormat::Rgba8Unorm,
+                                view_dimension: TextureViewDimension::D2,
+                            },
+                            count: None,
                         },
-                        count: None,
-                    }],
-                });
-
-        let texture_c_group_layout =
-            world
-                .resource::<RenderDevice>()
-                .create_bind_group_layout(&BindGroupLayoutDescriptor {
-                    label: None,
-                    entries: &[BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: ShaderStages::COMPUTE,
-                        ty: BindingType::StorageTexture {
-                            access: StorageTextureAccess::ReadWrite,
-                            format: TextureFormat::Rgba8Unorm,
-                            view_dimension: TextureViewDimension::D2,
+                        BindGroupLayoutEntry {
+                            binding: 3,
+                            visibility: ShaderStages::COMPUTE,
+                            ty: BindingType::StorageTexture {
+                                access: StorageTextureAccess::ReadWrite,
+                                format: TextureFormat::Rgba8Unorm,
+                                view_dimension: TextureViewDimension::D2,
+                            },
+                            count: None,
                         },
-                        count: None,
-                    }],
-                });
-
-        let texture_d_group_layout =
-            world
-                .resource::<RenderDevice>()
-                .create_bind_group_layout(&BindGroupLayoutDescriptor {
-                    label: None,
-                    entries: &[BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: ShaderStages::COMPUTE,
-                        ty: BindingType::StorageTexture {
-                            access: StorageTextureAccess::ReadWrite,
-                            format: TextureFormat::Rgba8Unorm,
-                            view_dimension: TextureViewDimension::D2,
-                        },
-                        count: None,
-                    }],
-                });
-
-        let common_uniform_layout =
-            world
-                .resource::<RenderDevice>()
-                .create_bind_group_layout(&BindGroupLayoutDescriptor {
-                    entries: &[BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: ShaderStages::COMPUTE,
-                        ty: BindingType::Buffer {
-                            ty: BufferBindingType::Uniform,
-                            has_dynamic_offset: false,
-                            min_binding_size: BufferSize::new(
-                                CommonUniform::std140_size_static() as u64
-                            ),
-                        },
-                        count: None,
-                    }],
-                    label: Some("common_uniform_layout"),
+                    ],
                 });
 
         MainImagePipeline {
             main_image_group_layout,
-            common_uniform_layout,
-            texture_a_bind_group_layout: texture_a_group_layout,
-            texture_b_bind_group_layout: texture_b_group_layout,
-            texture_c_bind_group_layout: texture_c_group_layout,
-            texture_d_bind_group_layout: texture_d_group_layout,
         }
     }
 }
@@ -451,11 +400,12 @@ impl FromWorld for MainImagePipeline {
 struct MainImage(Handle<Image>);
 
 struct MainImageBindGroup {
+    // common_uniform_bind_group: BindGroup,
     main_image_bind_group: BindGroup,
-    texture_a_bind_group: BindGroup,
-    texture_b_bind_group: BindGroup,
-    texture_c_bind_group: BindGroup,
-    texture_d_bind_group: BindGroup,
+    // texture_a_bind_group: BindGroup,
+    // texture_b_bind_group: BindGroup,
+    // texture_c_bind_group: BindGroup,
+    // texture_d_bind_group: BindGroup,
     init_pipeline: CachedComputePipelineId,
     update_pipeline: CachedComputePipelineId,
 }
@@ -474,44 +424,8 @@ fn import_shader(
     shader_handle_untyped.typed()
 }
 
-fn extract_main_image(
-    mut commands: Commands,
-    image: Res<MainImage>,
-    mut shaders: ResMut<Assets<Shader>>,
-    common_uniform: Res<CommonUniform>,
-) {
-    // insert common uniform only once: texture a, b, c and d retrieve it in their queue functions
-    commands.insert_resource(common_uniform.clone());
-
-    commands.insert_resource(MainImage(image.clone()));
-
-    let image_shader_handle = import_shader(IMAGE_SHADER, IMAGE_SHADER_HANDLE, &mut shaders);
-
-    let texture_a_shader_handle =
-        import_shader(TEXTURE_A_SHADER, TEXTURE_A_SHADER_HANDLE, &mut shaders);
-
-    let texture_b_shader_handle =
-        import_shader(TEXTURE_B_SHADER, TEXTURE_B_SHADER_HANDLE, &mut shaders);
-
-    let texture_c_shader_handle =
-        import_shader(TEXTURE_C_SHADER, TEXTURE_C_SHADER_HANDLE, &mut shaders);
-
-    let texture_d_shader_handle =
-        import_shader(TEXTURE_D_SHADER, TEXTURE_D_SHADER_HANDLE, &mut shaders);
-
-    let all_shader_handles = ShaderHandles {
-        image_shader: image_shader_handle,
-        texture_a_shader: texture_a_shader_handle,
-        texture_b_shader: texture_b_shader_handle,
-        texture_c_shader: texture_c_shader_handle,
-        texture_d_shader: texture_d_shader_handle,
-    };
-
-    commands.insert_resource(all_shader_handles);
-}
-
 // write the extracted common uniform into the corresponding uniform buffer
-fn prepare_common_uniform(
+pub fn prepare_common_uniform(
     common_uniform_meta: ResMut<CommonUniformMeta>,
     render_queue: Res<RenderQueue>,
     common_uniform: Res<CommonUniform>,
@@ -527,6 +441,52 @@ fn prepare_common_uniform(
     );
 }
 
+fn extract_main_image(
+    mut commands: Commands,
+    image: Res<MainImage>,
+    mut shaders: ResMut<Assets<Shader>>,
+    common_uniform: Res<CommonUniform>,
+    asset_server: Res<AssetServer>,
+    // common_uniform: Res<CommonUniform>,
+) {
+    // insert common uniform only once
+    commands.insert_resource(common_uniform.clone());
+
+    commands.insert_resource(MainImage(image.clone()));
+
+    let image_shader_handle = import_shader(IMAGE_SHADER, IMAGE_SHADER_HANDLE, &mut shaders);
+
+    // let image_shader = Shader::from_wgsl(Cow::from(IMAGE_SHADER));
+    // shaders.set_untracked(IMAGE_SHADER_HANDLE.clone(), image_shader);
+    // let image_handle: Handle<Shader> = IMAGE_SHADER_HANDLE.clone().typed();
+
+    let texture_a_shader_handle =
+        import_shader(TEXTURE_A_SHADER, TEXTURE_A_SHADER_HANDLE, &mut shaders);
+
+    let texture_b_shader_handle =
+        import_shader(TEXTURE_B_SHADER, TEXTURE_B_SHADER_HANDLE, &mut shaders);
+
+    let texture_c_shader_handle =
+        import_shader(TEXTURE_C_SHADER, TEXTURE_C_SHADER_HANDLE, &mut shaders);
+
+    let texture_d_shader_handle =
+        import_shader(TEXTURE_D_SHADER, TEXTURE_D_SHADER_HANDLE, &mut shaders);
+
+    // let main_load = asset_server.load("shaders/image_load.wgsl");
+
+    let all_shader_handles = ShaderHandles {
+        // image_shader: image_handle,
+        image_shader: image_shader_handle,
+        // image_shader: main_load,
+        texture_a_shader: texture_a_shader_handle,
+        texture_b_shader: texture_b_shader_handle,
+        texture_c_shader: texture_c_shader_handle,
+        texture_d_shader: texture_d_shader_handle,
+    };
+
+    commands.insert_resource(all_shader_handles);
+}
+
 fn queue_bind_group(
     mut commands: Commands,
     pipeline: Res<MainImagePipeline>,
@@ -535,25 +495,18 @@ fn queue_bind_group(
     main_image: Res<MainImage>,
     texture_a_image: Res<TextureA>,
     texture_b_image: Res<TextureB>,
-    texture_c_image: Res<TextureC>,
-    texture_d_image: Res<TextureD>,
+    // texture_c_image: Res<TextureC>,
+    // texture_d_image: Res<TextureD>,
     render_device: Res<RenderDevice>,
     mut pipeline_cache: ResMut<PipelineCache>,
     // main_image_pipeline: Res<MainImagePipeline>,
     all_shader_handles: Res<ShaderHandles>,
-    mut common_uniform_meta: ResMut<CommonUniformMeta>,
+    common_uniform_meta: ResMut<CommonUniformMeta>,
     // render_device: Res<RenderDevice>,
 ) {
     let init_pipeline = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
         label: None,
-        layout: Some(vec![
-            pipeline.common_uniform_layout.clone(),
-            pipeline.texture_a_bind_group_layout.clone(),
-            pipeline.texture_b_bind_group_layout.clone(),
-            pipeline.texture_c_bind_group_layout.clone(),
-            pipeline.texture_d_bind_group_layout.clone(),
-            pipeline.main_image_group_layout.clone(),
-        ]),
+        layout: Some(vec![pipeline.main_image_group_layout.clone()]),
         shader: all_shader_handles.image_shader.clone(),
         shader_defs: vec![],
         entry_point: Cow::from("init"),
@@ -561,110 +514,120 @@ fn queue_bind_group(
 
     let update_pipeline = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
         label: None,
-        layout: Some(vec![
-            pipeline.common_uniform_layout.clone(),
-            pipeline.texture_a_bind_group_layout.clone(),
-            pipeline.texture_b_bind_group_layout.clone(),
-            pipeline.texture_c_bind_group_layout.clone(),
-            pipeline.texture_d_bind_group_layout.clone(),
-            pipeline.main_image_group_layout.clone(),
-        ]),
+        layout: Some(vec![pipeline.main_image_group_layout.clone()]),
         shader: all_shader_handles.image_shader.clone(),
         shader_defs: vec![],
         entry_point: Cow::from("update"),
     });
 
-    // Common uniform
-    //
-    //
-    let common_uniform_bind_group = render_device.create_bind_group(&BindGroupDescriptor {
-        label: None,
-        layout: &pipeline.common_uniform_layout,
-        entries: &[BindGroupEntry {
-            binding: 0,
-            resource: common_uniform_meta.buffer.as_entire_binding(),
-        }],
-    });
-    common_uniform_meta.bind_group = Some(common_uniform_bind_group);
+    // // Common uniform
+    // //
+    // //
+    // let common_uniform_bind_group = render_device.create_bind_group(&BindGroupDescriptor {
+    //     label: None,
+    //     layout: &pipeline.common_uniform_layout,
+    //     entries: &[BindGroupEntry {
+    //         binding: 0,
+    //         resource: common_uniform_meta.buffer.as_entire_binding(),
+    //     }],
+    // });
+    // // common_uniform_meta.bind_group = Some(common_uniform_bind_group);
 
-    let view = &gpu_images[&main_image.0];
+    let main_view = &gpu_images[&main_image.0];
+    let texture_a_view = &gpu_images[&texture_a_image.0];
+    let texture_b_view = &gpu_images[&texture_b_image.0];
 
     let main_image_bind_group = render_device.create_bind_group(&BindGroupDescriptor {
-        label: None,
+        label: Some("main_bind_group"),
         layout: &pipeline.main_image_group_layout,
-        entries: &[BindGroupEntry {
-            binding: 0,
-            resource: BindingResource::TextureView(&view.texture_view),
-        }],
+        entries: &[
+            BindGroupEntry {
+                binding: 0,
+                resource: common_uniform_meta.buffer.as_entire_binding(),
+            },
+            BindGroupEntry {
+                binding: 1,
+                resource: BindingResource::TextureView(&texture_a_view.texture_view),
+            },
+            BindGroupEntry {
+                binding: 2,
+                resource: BindingResource::TextureView(&texture_b_view.texture_view),
+            },
+            BindGroupEntry {
+                binding: 3,
+                resource: BindingResource::TextureView(&main_view.texture_view),
+            },
+        ],
     });
 
-    let view_a = &gpu_images[&texture_a_image.0];
+    // let view_a = &gpu_images[&texture_a_image.0];
 
-    let texture_a_bind_group = render_device.create_bind_group(&BindGroupDescriptor {
-        label: None,
-        layout: &pipeline.texture_a_bind_group_layout,
-        entries: &[BindGroupEntry {
-            binding: 0,
-            resource: BindingResource::TextureView(&view_a.texture_view),
-        }],
-    });
+    // let texture_a_bind_group = render_device.create_bind_group(&BindGroupDescriptor {
+    //     label: None,
+    //     layout: &pipeline.texture_a_bind_group_layout,
+    //     entries: &[BindGroupEntry {
+    //         binding: 0,
+    //         resource: BindingResource::TextureView(&view_a.texture_view),
+    //     }],
+    // });
 
-    let view_b = &gpu_images[&texture_b_image.0];
+    // let view_b = &gpu_images[&texture_b_image.0];
 
-    let texture_b_bind_group = render_device.create_bind_group(&BindGroupDescriptor {
-        label: None,
-        layout: &pipeline.texture_b_bind_group_layout,
-        entries: &[BindGroupEntry {
-            binding: 0,
-            resource: BindingResource::TextureView(&view_b.texture_view),
-        }],
-    });
+    // let texture_b_bind_group = render_device.create_bind_group(&BindGroupDescriptor {
+    //     label: None,
+    //     layout: &pipeline.texture_b_bind_group_layout,
+    //     entries: &[BindGroupEntry {
+    //         binding: 0,
+    //         resource: BindingResource::TextureView(&view_b.texture_view),
+    //     }],
+    // });
 
-    let view_c = &gpu_images[&texture_c_image.0];
+    // let view_c = &gpu_images[&texture_c_image.0];
 
-    let texture_c_bind_group = render_device.create_bind_group(&BindGroupDescriptor {
-        label: None,
-        layout: &pipeline.texture_c_bind_group_layout,
-        entries: &[BindGroupEntry {
-            binding: 0,
-            resource: BindingResource::TextureView(&view_c.texture_view),
-        }],
-    });
+    // let texture_c_bind_group = render_device.create_bind_group(&BindGroupDescriptor {
+    //     label: None,
+    //     layout: &pipeline.texture_c_bind_group_layout,
+    //     entries: &[BindGroupEntry {
+    //         binding: 0,
+    //         resource: BindingResource::TextureView(&view_c.texture_view),
+    //     }],
+    // });
 
-    let view_d = &gpu_images[&texture_d_image.0];
+    // let view_d = &gpu_images[&texture_d_image.0];
 
-    let texture_d_bind_group = render_device.create_bind_group(&BindGroupDescriptor {
-        label: None,
-        layout: &pipeline.texture_d_bind_group_layout,
-        entries: &[BindGroupEntry {
-            binding: 0,
-            resource: BindingResource::TextureView(&view_d.texture_view),
-        }],
-    });
+    // let texture_d_bind_group = render_device.create_bind_group(&BindGroupDescriptor {
+    //     label: None,
+    //     layout: &pipeline.texture_d_bind_group_layout,
+    //     entries: &[BindGroupEntry {
+    //         binding: 0,
+    //         resource: BindingResource::TextureView(&view_d.texture_view),
+    //     }],
+    // });
 
     commands.insert_resource(MainImageBindGroup {
+        // common_uniform_bind_group,
         main_image_bind_group,
-        texture_a_bind_group,
-        texture_b_bind_group,
-        texture_c_bind_group,
-        texture_d_bind_group,
+        // texture_a_bind_group,
+        // texture_b_bind_group,
+        // texture_c_bind_group,
+        // texture_d_bind_group,
         init_pipeline: init_pipeline.clone(),
         update_pipeline: update_pipeline.clone(),
     });
 }
 
-#[derive(Clone, Hash, PartialEq, Eq)]
-pub struct MainUpdatePipelineKey {
-    common_code: String,
-}
+// #[derive(Clone, Hash, PartialEq, Eq)]
+// pub struct MainUpdatePipelineKey {
+//     common_code: String,
+// }
 
-impl Default for MainUpdatePipelineKey {
-    fn default() -> Self {
-        MainUpdatePipelineKey {
-            common_code: Default::default(),
-        }
-    }
-}
+// impl Default for MainUpdatePipelineKey {
+//     fn default() -> Self {
+//         MainUpdatePipelineKey {
+//             common_code: Default::default(),
+//         }
+//     }
+// }
 
 pub enum ShadertoyState {
     Loading,
@@ -720,8 +683,8 @@ impl render_graph::Node for MainNode {
     ) -> Result<(), render_graph::NodeRunError> {
         let bind_group = world.resource::<MainImageBindGroup>();
 
-        let common_uniform_meta = world.resource::<CommonUniformMeta>();
-        let common_uni_bind_group = common_uniform_meta.bind_group.clone().unwrap();
+        // let common_uniform_meta = world.resource::<CommonUniformMeta>();
+        // let common_uni_bind_group = common_uniform_meta.bind_group.clone().unwrap();
 
         let init_pipeline_cache = bind_group.init_pipeline;
         let update_pipeline_cache = bind_group.update_pipeline;
@@ -730,16 +693,24 @@ impl render_graph::Node for MainNode {
 
         let mut pass = render_context
             .command_encoder
-            .begin_compute_pass(&ComputePassDescriptor::default());
+            .begin_compute_pass(&ComputePassDescriptor {
+                label: Some("main_compute_pass"),
+            });
+
+        // println!("HA: {:?}", common_uni_bind_group);
 
         let k = 2;
-        pass.set_bind_group(k - 2, &common_uni_bind_group, &[]);
+        // pass.set_bind_group(k - 2, &common_uni_bind_group, &[]);
 
-        pass.set_bind_group(k - 1, &bind_group.texture_a_bind_group, &[]);
-        pass.set_bind_group(k, &bind_group.texture_b_bind_group, &[]);
-        pass.set_bind_group(k + 1, &bind_group.texture_c_bind_group, &[]);
-        pass.set_bind_group(k + 2, &bind_group.texture_d_bind_group, &[]);
-        pass.set_bind_group(k + 3, &bind_group.main_image_bind_group, &[]);
+        // pass.set_bind_group(k - 1, &bind_group.texture_a_bind_group, &[]);
+        // pass.set_bind_group(0, &bind_group.common_uniform_bind_group, &[]);
+        // pass.set_bind_group(1, &bind_group.texture_a_bind_group, &[]);
+        pass.set_bind_group(0, &bind_group.main_image_bind_group, &[]);
+
+        // pass.set_bind_group(k, &bind_group.texture_b_bind_group, &[]);
+        // pass.set_bind_group(k + 1, &bind_group.texture_c_bind_group, &[]);
+        // pass.set_bind_group(k + 2, &bind_group.texture_d_bind_group, &[]);
+        // pass.set_bind_group(k + 3, &bind_group.main_image_bind_group, &[]);
 
         // select the pipeline based on the current state
         match self.state {

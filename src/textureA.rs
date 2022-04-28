@@ -8,15 +8,17 @@ use bevy::{
         // render_resource::*,
         render_resource::{
             std140::AsStd140,
-            std430::{AsStd430, Std430},
+            // std430::{AsStd430, Std430},
             *,
         },
-        renderer::{RenderContext, RenderDevice},
+        renderer::{RenderContext, RenderDevice, RenderQueue},
         RenderApp,
         RenderStage,
     },
     window::WindowDescriptor,
 };
+
+// use crate::textureA::*;
 
 // use std::borrow::Cow;
 use bytemuck::bytes_of;
@@ -24,17 +26,73 @@ use rand::*;
 use std::{borrow::Cow, cmp::Ordering, num::NonZeroU64, ops::Deref, ops::Range};
 
 use crate::{
-    CommonUniformMeta, MainImagePipeline, ShaderHandles, ShadertoyState, SIZE, WORKGROUP_SIZE,
+    CommonUniform, CommonUniformMeta, ShaderHandles, ShadertoyState, SIZE, WORKGROUP_SIZE,
 };
 
 struct TextureABindGroup {
+    // texture_b_bind_group: BindGroup,
     texture_a_bind_group: BindGroup,
+    // common_uniform_bind_group: BindGroup,
     init_pipeline: CachedComputePipelineId,
     update_pipeline: CachedComputePipelineId,
 }
 
+// pub struct CommonUniformMetaA {
+//     // buffer: UniformVec<CommonUniform>,
+//     pub buffer: Buffer,
+//     // bind_group: Option<BindGroup>,
+// }
+
 #[derive(Deref)]
 pub struct TextureA(pub Handle<Image>);
+
+pub struct TextureAPipeline {
+    texture_a_bind_group_layout: BindGroupLayout,
+}
+
+impl FromWorld for TextureAPipeline {
+    fn from_world(world: &mut World) -> Self {
+        let texture_a_bind_group_layout = world
+            .resource::<RenderDevice>()
+            .create_bind_group_layout(&BindGroupLayoutDescriptor {
+                label: None,
+                entries: &[
+                    BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: ShaderStages::COMPUTE,
+                        ty: BindingType::Buffer {
+                            ty: BufferBindingType::Uniform,
+                            has_dynamic_offset: false,
+                            min_binding_size: BufferSize::new(
+                                CommonUniform::std140_size_static() as u64
+                            ),
+                        },
+                        count: None,
+                    },
+                    BindGroupLayoutEntry {
+                        binding: 1,
+                        visibility: ShaderStages::COMPUTE,
+                        ty: BindingType::StorageTexture {
+                            access: StorageTextureAccess::ReadWrite,
+                            format: TextureFormat::Rgba8Unorm,
+                            view_dimension: TextureViewDimension::D2,
+                        },
+                        count: None,
+                    },
+                ],
+            });
+
+        // let shader = world
+        //     .resource::<AssetServer>()
+        //     .load("shaders/texture_b.wgsl");
+
+        TextureAPipeline {
+            // texture_b_bind_group_layout,
+            texture_a_bind_group_layout,
+            // common_uniform_layout,
+        }
+    }
+}
 
 pub fn extract_texture_a(mut commands: Commands, image: Res<TextureA>) {
     commands.insert_resource(TextureA(image.clone()));
@@ -42,20 +100,21 @@ pub fn extract_texture_a(mut commands: Commands, image: Res<TextureA>) {
 
 pub fn queue_bind_group_a(
     mut commands: Commands,
-    // pipeline: Res<TextureAPipeline>,
-    main_pipeline: Res<MainImagePipeline>,
+    pipeline: Res<TextureAPipeline>,
     gpu_images: Res<RenderAssets<Image>>,
+    // texture_b: Res<TextureA>,
     texture_a: Res<TextureA>,
     render_device: Res<RenderDevice>,
     mut pipeline_cache: ResMut<PipelineCache>,
     all_shader_handles: Res<ShaderHandles>,
-    // mut common_uniform_meta: ResMut<CommonUniformMeta>,
+    common_uniform_meta: ResMut<CommonUniformMeta>,
 ) {
     let init_pipeline = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
-        label: Some(Cow::from("texture_a_init")),
+        label: None,
         layout: Some(vec![
-            main_pipeline.texture_a_bind_group_layout.clone(),
-            // main_pipeline.common_uniform_layout.clone(),
+            // pipeline.common_uniform_layout.clone(),
+            pipeline.texture_a_bind_group_layout.clone(),
+            // pipeline.texture_b_bind_group_layout.clone(),
         ]),
         shader: all_shader_handles.texture_a_shader.clone(),
         shader_defs: vec![],
@@ -63,39 +122,33 @@ pub fn queue_bind_group_a(
     });
 
     let update_pipeline = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
-        label: Some(Cow::from("texture_a_update")),
+        label: None,
         layout: Some(vec![
-            main_pipeline.texture_a_bind_group_layout.clone(),
-            // main_pipeline.common_uniform_layout.clone(),
+            // pipeline.common_uniform_layout.clone(),
+            pipeline.texture_a_bind_group_layout.clone(),
+            // pipeline.texture_b_bind_group_layout.clone(),
         ]),
         shader: all_shader_handles.texture_a_shader.clone(),
         shader_defs: vec![],
         entry_point: Cow::from("update"),
     });
 
-    let view = &gpu_images[&texture_a.0];
+    let texture_a_view = &gpu_images[&texture_a.0];
 
     let texture_a_bind_group = render_device.create_bind_group(&BindGroupDescriptor {
-        label: None,
-        layout: &main_pipeline.texture_a_bind_group_layout,
-        entries: &[BindGroupEntry {
-            binding: 0,
-            resource: BindingResource::TextureView(&view.texture_view),
-        }],
+        label: Some("texture_a_bind_group"),
+        layout: &pipeline.texture_a_bind_group_layout,
+        entries: &[
+            BindGroupEntry {
+                binding: 0,
+                resource: common_uniform_meta.buffer.as_entire_binding(),
+            },
+            BindGroupEntry {
+                binding: 1,
+                resource: BindingResource::TextureView(&texture_a_view.texture_view),
+            },
+        ],
     });
-
-    // // Common uniform
-    // //
-    // //
-    // let common_uniform_bind_group = render_device.create_bind_group(&BindGroupDescriptor {
-    //     label: None,
-    //     layout: &main_pipeline.common_uniform_layout,
-    //     entries: &[BindGroupEntry {
-    //         binding: 0,
-    //         resource: common_uniform_meta.buffer.as_entire_binding(),
-    //     }],
-    // });
-    // common_uniform_meta.bind_group = Some(common_uniform_bind_group);
 
     commands.insert_resource(TextureABindGroup {
         texture_a_bind_group,
@@ -118,25 +171,24 @@ impl Default for TextureANode {
 
 impl render_graph::Node for TextureANode {
     fn update(&mut self, world: &mut World) {
-        let pipeline_cache = world.resource::<PipelineCache>();
-
         let bind_group = world.resource::<TextureABindGroup>();
 
-        let init_pipeline = bind_group.init_pipeline;
-        let update_pipeline = bind_group.update_pipeline;
+        let pipeline_cache = world.resource::<PipelineCache>();
 
-        // if the corresponding pipeline has loaded, transition to the next stage
+        let init_pipeline_cache = bind_group.init_pipeline;
+        let update_pipeline_cache = bind_group.update_pipeline;
+
         match self.state {
             ShadertoyState::Loading => {
                 if let CachedPipelineState::Ok(_) =
-                    pipeline_cache.get_compute_pipeline_state(init_pipeline)
+                    pipeline_cache.get_compute_pipeline_state(init_pipeline_cache)
                 {
                     self.state = ShadertoyState::Init
                 }
             }
             ShadertoyState::Init => {
                 if let CachedPipelineState::Ok(_) =
-                    pipeline_cache.get_compute_pipeline_state(update_pipeline)
+                    pipeline_cache.get_compute_pipeline_state(update_pipeline_cache)
                 {
                     self.state = ShadertoyState::Update
                 }
@@ -153,10 +205,10 @@ impl render_graph::Node for TextureANode {
     ) -> Result<(), render_graph::NodeRunError> {
         let bind_group = world.resource::<TextureABindGroup>();
 
-        let common_uniform_meta = world.resource::<CommonUniformMeta>();
-        let common_uni_bind_group = &common_uniform_meta.bind_group.clone().unwrap();
-
+        // let texture_b_bind_group = &bind_group.texture_b_bind_group;
         let texture_a_bind_group = &bind_group.texture_a_bind_group;
+
+        // let common_uni_bind_group = bind_group.common_uniform_bind_group.clone();
 
         let init_pipeline_cache = bind_group.init_pipeline;
         let update_pipeline_cache = bind_group.update_pipeline;
@@ -167,8 +219,10 @@ impl render_graph::Node for TextureANode {
             .command_encoder
             .begin_compute_pass(&ComputePassDescriptor::default());
 
+        // pass.set_bind_group(0, &common_uni_bind_group, &[]);
         pass.set_bind_group(0, texture_a_bind_group, &[]);
-        // pass.set_bind_group(1, common_uni_bind_group, &[]);
+
+        // pass.set_bind_group(1, texture_b_bind_group, &[]);
 
         // select the pipeline based on the current state
         match self.state {
