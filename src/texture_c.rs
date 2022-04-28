@@ -23,8 +23,8 @@ use bytemuck::bytes_of;
 use rand::*;
 use std::{borrow::Cow, cmp::Ordering, num::NonZeroU64, ops::Deref, ops::Range};
 
-use crate::textureB::TextureB;
 use crate::texture_a::TextureA;
+use crate::texture_b::TextureB;
 use crate::{
     CommonUniform, CommonUniformMeta, ShaderHandles, ShadertoyState, SIZE, WORKGROUP_SIZE,
 };

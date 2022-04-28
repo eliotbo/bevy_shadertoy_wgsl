@@ -29,9 +29,9 @@ use crate::{
     CommonUniform, CommonUniformMeta, ShaderHandles, ShadertoyState, SIZE, WORKGROUP_SIZE,
 };
 
-use crate::textureB::TextureB;
-use crate::textureC::TextureC;
 use crate::texture_a::TextureA;
+use crate::texture_b::TextureB;
+use crate::texture_c::TextureC;
 
 pub struct TextureDPipeline {
     texture_d_group_layout: BindGroupLayout,

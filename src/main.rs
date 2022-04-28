@@ -23,14 +23,14 @@ use std::borrow::Cow;
 mod texture_a;
 use texture_a::*;
 
-mod textureB;
-use textureB::*;
+mod texture_b;
+use texture_b::*;
 
-mod textureC;
-use textureC::*;
+mod texture_c;
+use texture_c::*;
 
-mod textureD;
-use textureD::{extract_texture_d, queue_bind_group_d, TextureD, TextureDNode, TextureDPipeline};
+mod texture_d;
+use texture_d::{extract_texture_d, queue_bind_group_d, TextureD, TextureDNode, TextureDPipeline};
 
 pub const SIZE: (u32, u32) = (1280, 720);
 pub const WORKGROUP_SIZE: u32 = 8;
@@ -260,7 +260,7 @@ fn update_common_uniform(
     let window = windows.primary();
     if let Some(mouse_pos) = window.cursor_position() {
         common_uniform.i_mouse = mouse_pos;
-        println!("{:?}", mouse_pos);
+        // println!("{:?}", mouse_pos);
     }
 
     // update time
@@ -469,6 +469,7 @@ pub fn prepare_common_uniform(
     );
 }
 
+// TODO: move shader imports elsewhere
 fn extract_main_image(
     mut commands: Commands,
     image: Res<MainImage>,
