@@ -1,29 +1,14 @@
 use bevy::{
-    core::{cast_slice, FloatOrd, Pod, Time, Zeroable},
-    core_pipeline::node::MAIN_PASS_DEPENDENCIES,
     prelude::*,
     render::{
         render_asset::RenderAssets,
-        render_graph::{self, RenderGraph},
-        // render_resource::*,
-        render_resource::{
-            std140::AsStd140,
-            // std430::{AsStd430, Std430},
-            *,
-        },
-        renderer::{RenderContext, RenderDevice, RenderQueue},
-        RenderApp,
-        RenderStage,
+        render_graph::{self},
+        render_resource::{std140::AsStd140, *},
+        renderer::{RenderContext, RenderDevice},
     },
-    window::WindowDescriptor,
 };
 
-// use crate::textureA::*;
-
-// use std::borrow::Cow;
-use bytemuck::bytes_of;
-use rand::*;
-use std::{borrow::Cow, cmp::Ordering, num::NonZeroU64, ops::Deref, ops::Range};
+use std::borrow::Cow;
 
 use crate::{
     CommonUniform, CommonUniformMeta, ShaderHandles, ShadertoyState, SIZE, WORKGROUP_SIZE,

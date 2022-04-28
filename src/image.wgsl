@@ -70,7 +70,6 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
     //     alive = false;
     // }
 
-
     // let value: vec4<f32> = textureLoad(buffer_c, vec2<i32>(0,1));
     // if (value.x > 0.61) {
     //     alive = false;
@@ -81,7 +80,6 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
         alive = false;
     }
 
-
     // if (ga > 2) {
     //     alive = true;
     // }
@@ -91,12 +89,6 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
     // }
 
     // alive = false;
-    
-
-
-
-
-
 
     storageBarrier();
 

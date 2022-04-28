@@ -1,6 +1,6 @@
 use bevy::{
     core_pipeline::node::MAIN_PASS_DEPENDENCIES,
-    diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
+    // diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
     prelude::*,
     reflect::TypeUuid,
     render::{
@@ -539,15 +539,11 @@ fn import_shader(
     shader_handle_untyped.typed()
 }
 
-// TODO: move shader imports elsewhere
 fn extract_main_image(
     mut commands: Commands,
     image: Res<MainImage>,
-    mut shaders: ResMut<Assets<Shader>>,
     common_uniform: Res<CommonUniform>,
     all_shader_handles: Res<ShaderHandles>,
-    // asset_server: Res<AssetServer>,
-    // common_uniform: Res<CommonUniform>,
 ) {
     // insert common uniform only once
     commands.insert_resource(common_uniform.clone());
