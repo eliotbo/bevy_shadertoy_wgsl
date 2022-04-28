@@ -21,10 +21,10 @@ var buffer_a: texture_storage_2d<rgba8unorm, read_write>;
 [[group(0), binding(2)]]
 var buffer_b: texture_storage_2d<rgba8unorm, read_write>;
 
-// [[group(0), binding(3)]]
-// var buffer_c: texture_storage_2d<rgba8unorm, read_write>;
-
 [[group(0), binding(3)]]
+var buffer_c: texture_storage_2d<rgba8unorm, read_write>;
+
+[[group(0), binding(4)]]
 var texture: texture_storage_2d<rgba8unorm, read_write>;
 
 
@@ -96,16 +96,16 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
     //     alive = false;
     // }
 
-    let value: vec4<f32> = textureLoad(buffer_b, vec2<i32>(0,1));
-    if (value.x > 0.74) {
-        alive = false;
-    }
-
-
-    // let value: vec4<f32> = textureLoad(buffer_c, vec2<i32>(0,1));
-    // if (value.x < 0.61) {
+    // let value: vec4<f32> = textureLoad(buffer_b, vec2<i32>(0,1));
+    // if (value.x > 0.74) {
     //     alive = false;
     // }
+
+
+    let value: vec4<f32> = textureLoad(buffer_c, vec2<i32>(0,1));
+    if (value.x > 0.61) {
+        alive = false;
+    }
 
     // let value: vec4<f32> = textureLoad(buffer_d, vec2<i32>(0,1));
     // if (value.x > 0.79) {

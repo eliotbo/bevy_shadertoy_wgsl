@@ -291,10 +291,10 @@ impl Plugin for ShadertoyPlugin {
             .add_system_to_stage(RenderStage::Queue, queue_bind_group_a)
             .init_resource::<TextureBPipeline>()
             .add_system_to_stage(RenderStage::Extract, extract_texture_b)
-            .add_system_to_stage(RenderStage::Queue, queue_bind_group_b);
-        // .init_resource::<TextureCPipeline>()
-        // .add_system_to_stage(RenderStage::Extract, extract_texture_c)
-        // .add_system_to_stage(RenderStage::Queue, queue_bind_group_c)
+            .add_system_to_stage(RenderStage::Queue, queue_bind_group_b)
+            .init_resource::<TextureCPipeline>()
+            .add_system_to_stage(RenderStage::Extract, extract_texture_c)
+            .add_system_to_stage(RenderStage::Queue, queue_bind_group_c);
         // .init_resource::<TextureDPipeline>()
         // .add_system_to_stage(RenderStage::Extract, extract_texture_d)
         // .add_system_to_stage(RenderStage::Queue, queue_bind_group_d);
@@ -304,16 +304,16 @@ impl Plugin for ShadertoyPlugin {
         render_graph.add_node("main_image", MainNode::default());
         render_graph.add_node("texture_a", TextureANode::default());
         render_graph.add_node("texture_b", TextureBNode::default());
-        // render_graph.add_node("texture_c", TextureCNode::default());
+        render_graph.add_node("texture_c", TextureCNode::default());
         // // render_graph.add_node("texture_d", TextureDNode::default());
 
         render_graph
             .add_node_edge("texture_a", "texture_b")
             .unwrap();
 
-        // render_graph
-        //     .add_node_edge("texture_b", "texture_c")
-        //     .unwrap();
+        render_graph
+            .add_node_edge("texture_b", "texture_c")
+            .unwrap();
 
         // // render_graph
         // //     .add_node_edge("texture_c", "texture_d")
@@ -324,7 +324,7 @@ impl Plugin for ShadertoyPlugin {
         // //     .unwrap();
 
         render_graph
-            .add_node_edge("texture_b", "main_image")
+            .add_node_edge("texture_c", "main_image")
             .unwrap();
 
         render_graph
@@ -387,16 +387,16 @@ impl FromWorld for MainImagePipeline {
                             },
                             count: None,
                         },
-                        // BindGroupLayoutEntry {
-                        //     binding: 4,
-                        //     visibility: ShaderStages::COMPUTE,
-                        //     ty: BindingType::StorageTexture {
-                        //         access: StorageTextureAccess::ReadWrite,
-                        //         format: TextureFormat::Rgba8Unorm,
-                        //         view_dimension: TextureViewDimension::D2,
-                        //     },
-                        //     count: None,
-                        // },
+                        BindGroupLayoutEntry {
+                            binding: 4,
+                            visibility: ShaderStages::COMPUTE,
+                            ty: BindingType::StorageTexture {
+                                access: StorageTextureAccess::ReadWrite,
+                                format: TextureFormat::Rgba8Unorm,
+                                view_dimension: TextureViewDimension::D2,
+                            },
+                            count: None,
+                        },
                     ],
                 });
 
@@ -500,7 +500,7 @@ fn queue_bind_group(
     main_image: Res<MainImage>,
     texture_a_image: Res<TextureA>,
     texture_b_image: Res<TextureB>,
-    // texture_c_image: Res<TextureC>,
+    texture_c_image: Res<TextureC>,
     // texture_d_image: Res<TextureD>,
     render_device: Res<RenderDevice>,
     mut pipeline_cache: ResMut<PipelineCache>,
@@ -526,7 +526,7 @@ fn queue_bind_group(
     let main_view = &gpu_images[&main_image.0];
     let texture_a_view = &gpu_images[&texture_a_image.0];
     let texture_b_view = &gpu_images[&texture_b_image.0];
-    // let texture_c_view = &gpu_images[&texture_c_image.0];
+    let texture_c_view = &gpu_images[&texture_c_image.0];
 
     let main_image_bind_group = render_device.create_bind_group(&BindGroupDescriptor {
         label: Some("main_bind_group"),
@@ -544,12 +544,12 @@ fn queue_bind_group(
                 binding: 2,
                 resource: BindingResource::TextureView(&texture_b_view.texture_view),
             },
-            // BindGroupEntry {
-            //     binding: 3,
-            //     resource: BindingResource::TextureView(&texture_c_view.texture_view),
-            // },
             BindGroupEntry {
                 binding: 3,
+                resource: BindingResource::TextureView(&texture_c_view.texture_view),
+            },
+            BindGroupEntry {
+                binding: 4,
                 resource: BindingResource::TextureView(&main_view.texture_view),
             },
         ],

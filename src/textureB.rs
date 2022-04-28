@@ -86,7 +86,6 @@ impl FromWorld for TextureBPipeline {
 
         TextureBPipeline {
             texture_b_bind_group_layout,
-            // texture_a_bind_group_layout,
         }
     }
 }
