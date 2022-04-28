@@ -29,9 +29,9 @@ use crate::{
     CommonUniform, CommonUniformMeta, ShaderHandles, ShadertoyState, SIZE, WORKGROUP_SIZE,
 };
 
-use crate::textureA::TextureA;
 use crate::textureB::TextureB;
 use crate::textureC::TextureC;
+use crate::texture_a::TextureA;
 
 pub struct TextureDPipeline {
     texture_d_group_layout: BindGroupLayout,
@@ -44,16 +44,60 @@ impl FromWorld for TextureDPipeline {
                 .resource::<RenderDevice>()
                 .create_bind_group_layout(&BindGroupLayoutDescriptor {
                     label: None,
-                    entries: &[BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: ShaderStages::COMPUTE,
-                        ty: BindingType::StorageTexture {
-                            access: StorageTextureAccess::ReadWrite,
-                            format: TextureFormat::Rgba8Unorm,
-                            view_dimension: TextureViewDimension::D2,
+                    entries: &[
+                        BindGroupLayoutEntry {
+                            binding: 0,
+                            visibility: ShaderStages::COMPUTE,
+                            ty: BindingType::Buffer {
+                                ty: BufferBindingType::Uniform,
+                                has_dynamic_offset: false,
+                                min_binding_size: BufferSize::new(
+                                    CommonUniform::std140_size_static() as u64,
+                                ),
+                            },
+                            count: None,
                         },
-                        count: None,
-                    }],
+                        BindGroupLayoutEntry {
+                            binding: 1,
+                            visibility: ShaderStages::COMPUTE,
+                            ty: BindingType::StorageTexture {
+                                access: StorageTextureAccess::ReadWrite,
+                                format: TextureFormat::Rgba8Unorm,
+                                view_dimension: TextureViewDimension::D2,
+                            },
+                            count: None,
+                        },
+                        BindGroupLayoutEntry {
+                            binding: 2,
+                            visibility: ShaderStages::COMPUTE,
+                            ty: BindingType::StorageTexture {
+                                access: StorageTextureAccess::ReadWrite,
+                                format: TextureFormat::Rgba8Unorm,
+                                view_dimension: TextureViewDimension::D2,
+                            },
+                            count: None,
+                        },
+                        BindGroupLayoutEntry {
+                            binding: 3,
+                            visibility: ShaderStages::COMPUTE,
+                            ty: BindingType::StorageTexture {
+                                access: StorageTextureAccess::ReadWrite,
+                                format: TextureFormat::Rgba8Unorm,
+                                view_dimension: TextureViewDimension::D2,
+                            },
+                            count: None,
+                        },
+                        BindGroupLayoutEntry {
+                            binding: 4,
+                            visibility: ShaderStages::COMPUTE,
+                            ty: BindingType::StorageTexture {
+                                access: StorageTextureAccess::ReadWrite,
+                                format: TextureFormat::Rgba8Unorm,
+                                view_dimension: TextureViewDimension::D2,
+                            },
+                            count: None,
+                        },
+                    ],
                 });
 
         TextureDPipeline {
@@ -86,6 +130,7 @@ pub fn queue_bind_group_d(
     texture_d_image: Res<TextureD>,
     render_device: Res<RenderDevice>,
     mut pipeline_cache: ResMut<PipelineCache>,
+    common_uniform_meta: ResMut<CommonUniformMeta>,
 
     all_shader_handles: Res<ShaderHandles>,
 ) {
@@ -105,15 +150,36 @@ pub fn queue_bind_group_d(
         entry_point: Cow::from("update"),
     });
 
-    let view_d = &gpu_images[&texture_d_image.0];
+    let texture_a_view = &gpu_images[&texture_a_image.0];
+    let texture_b_view = &gpu_images[&texture_b_image.0];
+    let texture_c_view = &gpu_images[&texture_c_image.0];
+    let texture_d_view = &gpu_images[&texture_d_image.0];
 
     let texture_d_bind_group = render_device.create_bind_group(&BindGroupDescriptor {
         label: None,
         layout: &pipeline.texture_d_group_layout,
-        entries: &[BindGroupEntry {
-            binding: 0,
-            resource: BindingResource::TextureView(&view_d.texture_view),
-        }],
+        entries: &[
+            BindGroupEntry {
+                binding: 0,
+                resource: common_uniform_meta.buffer.as_entire_binding(),
+            },
+            BindGroupEntry {
+                binding: 1,
+                resource: BindingResource::TextureView(&texture_a_view.texture_view),
+            },
+            BindGroupEntry {
+                binding: 2,
+                resource: BindingResource::TextureView(&texture_b_view.texture_view),
+            },
+            BindGroupEntry {
+                binding: 3,
+                resource: BindingResource::TextureView(&texture_c_view.texture_view),
+            },
+            BindGroupEntry {
+                binding: 4,
+                resource: BindingResource::TextureView(&texture_d_view.texture_view),
+            },
+        ],
     });
 
     commands.insert_resource(TextureDBindGroup {

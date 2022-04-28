@@ -1,5 +1,6 @@
 use bevy::{
     core_pipeline::node::MAIN_PASS_DEPENDENCIES,
+    diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
     prelude::*,
     reflect::TypeUuid,
     render::{
@@ -11,7 +12,7 @@ use bevy::{
         RenderApp,
         RenderStage,
     },
-    window::WindowResized,
+    window::{PresentMode, WindowResized},
 };
 
 use std::borrow::Cow;
@@ -19,8 +20,8 @@ use std::borrow::Cow;
 // mod bufferA;
 // use bufferA::*;
 
-mod textureA;
-use textureA::*;
+mod texture_a;
+use texture_a::*;
 
 mod textureB;
 use textureB::*;
@@ -78,11 +79,12 @@ fn main() {
     let mut app = App::new();
     // app.insert_resource(wgpu_options)
     app.insert_resource(ClearColor(Color::BLACK))
-        // .insert_resource(WindowDescriptor {
-        //     // uncomment for unthrottled FPS
-        //     // vsync: false,
-        //     ..default()
-        // })
+        .insert_resource(WindowDescriptor {
+            // uncomment for unthrottled FPS
+            present_mode: PresentMode::Immediate,
+            // vsync: false,
+            ..default()
+        })
         .add_plugins(DefaultPlugins)
         .add_system(bevy::input::system::exit_on_esc_system)
         .add_plugin(ShadertoyPlugin)
@@ -211,40 +213,61 @@ fn setup(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
     commands.insert_resource(TextureD(texture_d));
 }
 
+// uniform vec3      iResolution;           // viewport resolution (in pixels)
+// uniform float     iTime;                 // shader playback time (in seconds)
+// uniform float     iTimeDelta;            // render time (in seconds)
+// uniform int       iFrame;                // shader playback frame
+// uniform float     iChannelTime[4];       // channel playback time (in seconds)
+// uniform vec3      iChannelResolution[4]; // channel resolution (in pixels)
+// uniform vec4      iMouse;                // mouse pixel coords. xy: current (if MLB down), zw: click
+// uniform samplerXX iChannel0..3;          // input channel. XX = 2D/Cube
+// uniform vec4      iDate;                 // (year, month, day, time in seconds)
+// uniform float     iSampleRate;           // sound sample rate (i.e., 44100)
+
 #[derive(Component, Default, Clone, AsStd140)]
 pub struct CommonUniform {
-    pub iTime: f32,
-    pub iTimeDelta: f32,
-    pub iFrame: i32,
-    pub iSampleRate: i32,
+    pub i_time: f32,
+    pub i_time_delta: f32,
+    pub i_frame: i32,
+    pub i_sample_rate: i32, // sound sample rate
 
-    pub iChannelTime: Vec4,
-    pub iChannelResolution: Vec4,
-    pub iDate: [i32; 4],
+    pub i_channel_time: Vec4,
+    pub i_channel_resolution: Vec4,
+    pub i_date: [i32; 4],
 
-    pub iResolution: Vec2,
-    pub iMouse: Vec2,
+    pub i_resolution: Vec2,
+    pub i_mouse: Vec2,
 }
 
 pub struct CommonUniformMeta {
-    // buffer: UniformVec<CommonUniform>,
     buffer: Buffer,
-    // bind_group: Option<BindGroup>,
 }
 
+// TODO: update date, channel time, channe l_resolution, sample_rate
 fn update_common_uniform(
     mut common_uniform: ResMut<CommonUniform>,
     mut window_resize_event: EventReader<WindowResized>,
+    windows: Res<Windows>,
     time: Res<Time>,
 ) {
     // update resolution
     for window_resize in window_resize_event.iter() {
-        common_uniform.iResolution.x = window_resize.width;
-        common_uniform.iResolution.y = window_resize.height;
+        common_uniform.i_resolution.x = window_resize.width;
+        common_uniform.i_resolution.y = window_resize.height;
     }
+
+    // update mouse position
+    let window = windows.primary();
+    if let Some(mouse_pos) = window.cursor_position() {
+        common_uniform.i_mouse = mouse_pos;
+        println!("{:?}", mouse_pos);
+    }
+
     // update time
-    common_uniform.iTime = time.seconds_since_startup() as f32;
-    common_uniform.iTimeDelta = time.delta_seconds() as f32;
+    common_uniform.i_time = time.seconds_since_startup() as f32;
+    common_uniform.i_time_delta = time.delta_seconds() as f32;
+
+    common_uniform.i_frame += 1;
 
     // println!("{:?}", common_uniform.iTime);
 }
@@ -275,14 +298,8 @@ impl Plugin for ShadertoyPlugin {
         render_app
             .insert_resource(CommonUniformMeta {
                 buffer: buffer.clone(),
-                // bind_group: None,
             })
-            // .insert_resource(CommonUniformMetaA {
-            //     buffer: buffer.clone(),
-            // })
-            // .add_system_to_stage(RenderStage::Prepare, prepare_common_uniform)
             .add_system_to_stage(RenderStage::Prepare, prepare_common_uniform)
-            // .add_system_to_stage(RenderStage::Prepare, prepare_common_uniform_a)
             .init_resource::<MainImagePipeline>()
             .add_system_to_stage(RenderStage::Extract, extract_main_image)
             .add_system_to_stage(RenderStage::Queue, queue_bind_group)
@@ -294,10 +311,10 @@ impl Plugin for ShadertoyPlugin {
             .add_system_to_stage(RenderStage::Queue, queue_bind_group_b)
             .init_resource::<TextureCPipeline>()
             .add_system_to_stage(RenderStage::Extract, extract_texture_c)
-            .add_system_to_stage(RenderStage::Queue, queue_bind_group_c);
-        // .init_resource::<TextureDPipeline>()
-        // .add_system_to_stage(RenderStage::Extract, extract_texture_d)
-        // .add_system_to_stage(RenderStage::Queue, queue_bind_group_d);
+            .add_system_to_stage(RenderStage::Queue, queue_bind_group_c)
+            .init_resource::<TextureDPipeline>()
+            .add_system_to_stage(RenderStage::Extract, extract_texture_d)
+            .add_system_to_stage(RenderStage::Queue, queue_bind_group_d);
 
         let mut render_graph = render_app.world.resource_mut::<RenderGraph>();
 
@@ -305,7 +322,7 @@ impl Plugin for ShadertoyPlugin {
         render_graph.add_node("texture_a", TextureANode::default());
         render_graph.add_node("texture_b", TextureBNode::default());
         render_graph.add_node("texture_c", TextureCNode::default());
-        // // render_graph.add_node("texture_d", TextureDNode::default());
+        render_graph.add_node("texture_d", TextureDNode::default());
 
         render_graph
             .add_node_edge("texture_a", "texture_b")
@@ -315,16 +332,12 @@ impl Plugin for ShadertoyPlugin {
             .add_node_edge("texture_b", "texture_c")
             .unwrap();
 
-        // // render_graph
-        // //     .add_node_edge("texture_c", "texture_d")
-        // //     .unwrap();
-
-        // // render_graph
-        // //     .add_node_edge("texture_d", "main_image")
-        // //     .unwrap();
+        render_graph
+            .add_node_edge("texture_c", "texture_d")
+            .unwrap();
 
         render_graph
-            .add_node_edge("texture_c", "main_image")
+            .add_node_edge("texture_d", "main_image")
             .unwrap();
 
         render_graph
@@ -389,6 +402,16 @@ impl FromWorld for MainImagePipeline {
                         },
                         BindGroupLayoutEntry {
                             binding: 4,
+                            visibility: ShaderStages::COMPUTE,
+                            ty: BindingType::StorageTexture {
+                                access: StorageTextureAccess::ReadWrite,
+                                format: TextureFormat::Rgba8Unorm,
+                                view_dimension: TextureViewDimension::D2,
+                            },
+                            count: None,
+                        },
+                        BindGroupLayoutEntry {
+                            binding: 5,
                             visibility: ShaderStages::COMPUTE,
                             ty: BindingType::StorageTexture {
                                 access: StorageTextureAccess::ReadWrite,
@@ -480,9 +503,7 @@ fn extract_main_image(
     // let main_load = asset_server.load("shaders/image_load.wgsl");
 
     let all_shader_handles = ShaderHandles {
-        // image_shader: image_handle,
         image_shader: image_shader_handle,
-        // image_shader: main_load,
         texture_a_shader: texture_a_shader_handle,
         texture_b_shader: texture_b_shader_handle,
         texture_c_shader: texture_c_shader_handle,
@@ -501,7 +522,7 @@ fn queue_bind_group(
     texture_a_image: Res<TextureA>,
     texture_b_image: Res<TextureB>,
     texture_c_image: Res<TextureC>,
-    // texture_d_image: Res<TextureD>,
+    texture_d_image: Res<TextureD>,
     render_device: Res<RenderDevice>,
     mut pipeline_cache: ResMut<PipelineCache>,
     all_shader_handles: Res<ShaderHandles>,
@@ -527,6 +548,7 @@ fn queue_bind_group(
     let texture_a_view = &gpu_images[&texture_a_image.0];
     let texture_b_view = &gpu_images[&texture_b_image.0];
     let texture_c_view = &gpu_images[&texture_c_image.0];
+    let texture_d_view = &gpu_images[&texture_d_image.0];
 
     let main_image_bind_group = render_device.create_bind_group(&BindGroupDescriptor {
         label: Some("main_bind_group"),
@@ -550,6 +572,10 @@ fn queue_bind_group(
             },
             BindGroupEntry {
                 binding: 4,
+                resource: BindingResource::TextureView(&texture_d_view.texture_view),
+            },
+            BindGroupEntry {
+                binding: 5,
                 resource: BindingResource::TextureView(&main_view.texture_view),
             },
         ],

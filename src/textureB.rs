@@ -18,7 +18,7 @@ use bevy::{
     window::WindowDescriptor,
 };
 
-use crate::textureA::*;
+use crate::texture_a::*;
 
 // use std::borrow::Cow;
 use bytemuck::bytes_of;

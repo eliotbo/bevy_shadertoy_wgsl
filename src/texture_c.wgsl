@@ -44,7 +44,7 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
 
     // textureStore(buffer_c, location, vec4<f32>(0.95));
 
-    if (uni.iTime > 1.0) {
-        textureStore(buffer_c, location, vec4<f32>(0.95));
-    }
+    // if (uni.iTime > 1.0) {
+    //     textureStore(buffer_c, location, vec4<f32>(0.95));
+    // }
 }

@@ -25,6 +25,9 @@ var buffer_b: texture_storage_2d<rgba8unorm, read_write>;
 var buffer_c: texture_storage_2d<rgba8unorm, read_write>;
 
 [[group(0), binding(4)]]
+var buffer_d: texture_storage_2d<rgba8unorm, read_write>;
+
+[[group(0), binding(5)]]
 var texture: texture_storage_2d<rgba8unorm, read_write>;
 
 
@@ -58,38 +61,40 @@ fn init([[builtin(global_invocation_id)]] invocation_id: vec3<u32>, [[builtin(nu
 }
 
 
-fn get(location: vec2<i32>, offset_x: i32, offset_y: i32) -> i32 {
-    let value: vec4<f32> = textureLoad(texture, location + vec2<i32>(offset_x, offset_y));
-    return i32(value.x);
-}
+// fn get(location: vec2<i32>, offset_x: i32, offset_y: i32) -> i32 {
+//     let value: vec4<f32> = textureLoad(texture, location + vec2<i32>(offset_x, offset_y));
+//     return i32(value.x);
+// }
 
-fn count_alive(location: vec2<i32>) -> i32 {
-    return get(location, -1, -1) +
-           get(location, -1,  0) +
-           get(location, -1,  1) +
-           get(location,  0, -1) +
-           get(location,  0,  1) +
-           get(location,  1, -1) +
-           get(location,  1,  0) +
-           get(location,  1,  1);
-}
+// fn count_alive(location: vec2<i32>) -> i32 {
+//     return get(location, -1, -1) +
+//            get(location, -1,  0) +
+//            get(location, -1,  1) +
+//            get(location,  0, -1) +
+//            get(location,  0,  1) +
+//            get(location,  1, -1) +
+//            get(location,  1,  0) +
+//            get(location,  1,  1);
+// }
 
 [[stage(compute), workgroup_size(8, 8, 1)]]
 fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
     let location = vec2<i32>(i32(invocation_id.x), i32(invocation_id.y));
 
-    let n_alive = count_alive(location);
-    let color = vec4<f32>(f32(n_alive) / 8.0);
+    // let n_alive = count_alive(location);
+    // let color = vec4<f32>(f32(n_alive) / 8.0);
 
-    var alive: bool;
-    if (n_alive == 3) {
-        alive = true;
-    } else if (n_alive == 2) {
-        let currently_alive = get(location, 0, 0);
-        alive = bool(currently_alive);
-    } else {
-        alive = false;
-    }
+    // var alive: bool;
+    // if (n_alive == 3) {
+    //     alive = true;
+    // } else if (n_alive == 2) {
+    //     let currently_alive = get(location, 0, 0);
+    //     alive = bool(currently_alive);
+    // } else {
+    //     alive = false;
+    // }
+
+    var alive = true;
 
     // let value: vec4<f32> = textureLoad(buffer_a, vec2<i32>(0,1));
     // if (value.x > 0.51) {
@@ -102,15 +107,15 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
     // }
 
 
-    let value: vec4<f32> = textureLoad(buffer_c, vec2<i32>(0,1));
-    if (value.x > 0.61) {
-        alive = false;
-    }
-
-    // let value: vec4<f32> = textureLoad(buffer_d, vec2<i32>(0,1));
-    // if (value.x > 0.79) {
+    // let value: vec4<f32> = textureLoad(buffer_c, vec2<i32>(0,1));
+    // if (value.x > 0.61) {
     //     alive = false;
     // }
+
+    let value: vec4<f32> = textureLoad(buffer_d, vec2<i32>(0,1));
+    if (value.x > 0.79) {
+        alive = false;
+    }
 
     // if (uni.iTime > 1.0) {
     //     alive = false;
