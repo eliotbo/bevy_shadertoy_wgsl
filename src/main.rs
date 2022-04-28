@@ -17,9 +17,6 @@ use bevy::{
 
 use std::borrow::Cow;
 
-// mod bufferA;
-// use bufferA::*;
-
 mod texture_a;
 use texture_a::*;
 
@@ -38,31 +35,36 @@ pub const NUM_PARTICLES: u32 = 256;
 
 const COMMON: &'static str = include_str!("common.wgsl");
 
-const IMAGE_SHADER: &'static str = include_str!("image.wgsl");
+const IMAGE_SHADER: &'static str = include_str!("templates/image_template.wgsl");
+const IMAGE_CORE_SCRIPT: &'static str = include_str!("image.wgsl");
 pub const IMAGE_SHADER_HANDLE: HandleUntyped = HandleUntyped::weak_from_u64(
     bevy::render::render_resource::Shader::TYPE_UUID,
     192598017680025719,
 );
 
-const TEXTURE_A_SHADER: &'static str = include_str!("texture_a.wgsl");
+const TEXTURE_A_SHADER: &'static str = include_str!("templates/texture_a_template.wgsl");
+const TEXTURE_A_CORE_SCRIPT: &'static str = include_str!("texture_a.wgsl");
 pub const TEXTURE_A_SHADER_HANDLE: HandleUntyped = HandleUntyped::weak_from_u64(
     bevy::render::render_resource::Shader::TYPE_UUID,
     986988749367675188,
 );
 
-const TEXTURE_B_SHADER: &'static str = include_str!("texture_b.wgsl");
+const TEXTURE_B_SHADER: &'static str = include_str!("templates/texture_b_template.wgsl");
+const TEXTURE_B_CORE_SCRIPT: &'static str = include_str!("texture_b.wgsl");
 pub const TEXTURE_B_SHADER_HANDLE: HandleUntyped = HandleUntyped::weak_from_u64(
     bevy::render::render_resource::Shader::TYPE_UUID,
     808999425257967014,
 );
 
-const TEXTURE_C_SHADER: &'static str = include_str!("texture_c.wgsl");
+const TEXTURE_C_SHADER: &'static str = include_str!("templates/texture_c_template.wgsl");
+const TEXTURE_C_CORE_SCRIPT: &'static str = include_str!("texture_c.wgsl");
 pub const TEXTURE_C_SHADER_HANDLE: HandleUntyped = HandleUntyped::weak_from_u64(
     bevy::render::render_resource::Shader::TYPE_UUID,
     819348234244712380,
 );
 
-const TEXTURE_D_SHADER: &'static str = include_str!("texture_d.wgsl");
+const TEXTURE_D_SHADER: &'static str = include_str!("templates/texture_d_template.wgsl");
+const TEXTURE_D_CORE_SCRIPT: &'static str = include_str!("texture_d.wgsl");
 pub const TEXTURE_D_SHADER_HANDLE: HandleUntyped = HandleUntyped::weak_from_u64(
     bevy::render::render_resource::Shader::TYPE_UUID,
     193535259211504032,
@@ -93,7 +95,11 @@ fn main() {
         .run();
 }
 
-fn setup(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
+fn setup(
+    mut commands: Commands,
+    mut images: ResMut<Assets<Image>>,
+    mut shaders: ResMut<Assets<Shader>>,
+) {
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
 
     let mut image = Image::new_fill(
@@ -211,6 +217,66 @@ fn setup(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
     let texture_d = images.add(texture_d);
 
     commands.insert_resource(TextureD(texture_d));
+
+    //
+    //
+    //
+    // import shaders
+    let image_shader_handle = import_shader(
+        IMAGE_SHADER,
+        IMAGE_SHADER_HANDLE,
+        &mut shaders,
+        IMAGE_CORE_SCRIPT,
+        "{{IMAGE}}",
+    );
+
+    // let image_shader = Shader::from_wgsl(Cow::from(IMAGE_SHADER));
+    // shaders.set_untracked(IMAGE_SHADER_HANDLE.clone(), image_shader);
+    // let image_handle: Handle<Shader> = IMAGE_SHADER_HANDLE.clone().typed();
+
+    let texture_a_shader_handle = import_shader(
+        TEXTURE_A_SHADER,
+        TEXTURE_A_SHADER_HANDLE,
+        &mut shaders,
+        TEXTURE_A_CORE_SCRIPT,
+        "{{TEXTURE_A}}",
+    );
+
+    let texture_b_shader_handle = import_shader(
+        TEXTURE_B_SHADER,
+        TEXTURE_B_SHADER_HANDLE,
+        &mut shaders,
+        TEXTURE_B_CORE_SCRIPT,
+        "{{TEXTURE_B}}",
+    );
+
+    let texture_c_shader_handle = import_shader(
+        TEXTURE_C_SHADER,
+        TEXTURE_C_SHADER_HANDLE,
+        &mut shaders,
+        TEXTURE_C_CORE_SCRIPT,
+        "{{TEXTURE_C}}",
+    );
+
+    let texture_d_shader_handle = import_shader(
+        TEXTURE_D_SHADER,
+        TEXTURE_D_SHADER_HANDLE,
+        &mut shaders,
+        TEXTURE_D_CORE_SCRIPT,
+        "{{TEXTURE_D}}",
+    );
+
+    // let main_load = asset_server.load("shaders/image_load.wgsl");
+
+    let all_shader_handles = ShaderHandles {
+        image_shader: image_shader_handle,
+        texture_a_shader: texture_a_shader_handle,
+        texture_b_shader: texture_b_shader_handle,
+        texture_c_shader: texture_c_shader_handle,
+        texture_d_shader: texture_d_shader_handle,
+    };
+
+    commands.insert_resource(all_shader_handles);
 }
 
 // uniform vec3      iResolution;           // viewport resolution (in pixels)
@@ -274,6 +340,7 @@ fn update_common_uniform(
 
 pub struct ShadertoyPlugin;
 
+#[derive(Clone)]
 pub struct ShaderHandles {
     pub image_shader: Handle<Shader>,
     pub texture_a_shader: Handle<Shader>,
@@ -438,20 +505,6 @@ struct MainImageBindGroup {
     update_pipeline: CachedComputePipelineId,
 }
 
-fn import_shader(
-    shader_skeleton: &str,
-    shader_handle_untyped: HandleUntyped,
-    shaders: &mut Assets<Shader>,
-) -> Handle<Shader> {
-    //
-    // insert common code in every shader
-    let image_source = shader_skeleton.replace("{{COMMON}}", &COMMON);
-
-    let image_shader = Shader::from_wgsl(Cow::from(image_source));
-    shaders.set_untracked(shader_handle_untyped.clone(), image_shader.clone());
-    shader_handle_untyped.typed()
-}
-
 // write the extracted common uniform into the corresponding uniform buffer
 pub fn prepare_common_uniform(
     common_uniform_meta: ResMut<CommonUniformMeta>,
@@ -469,12 +522,30 @@ pub fn prepare_common_uniform(
     );
 }
 
+fn import_shader(
+    shader_skeleton: &str,
+    shader_handle_untyped: HandleUntyped,
+    shaders: &mut Assets<Shader>,
+    shader_core_script: &str,
+    signature: &str,
+) -> Handle<Shader> {
+    //
+    // insert common code in every shader
+    let mut image_source = shader_skeleton.replace("{{COMMON}}", &COMMON);
+    image_source = image_source.replace(signature, shader_core_script);
+
+    let image_shader = Shader::from_wgsl(Cow::from(image_source));
+    shaders.set_untracked(shader_handle_untyped.clone(), image_shader.clone());
+    shader_handle_untyped.typed()
+}
+
 // TODO: move shader imports elsewhere
 fn extract_main_image(
     mut commands: Commands,
     image: Res<MainImage>,
     mut shaders: ResMut<Assets<Shader>>,
     common_uniform: Res<CommonUniform>,
+    all_shader_handles: Res<ShaderHandles>,
     // asset_server: Res<AssetServer>,
     // common_uniform: Res<CommonUniform>,
 ) {
@@ -483,35 +554,7 @@ fn extract_main_image(
 
     commands.insert_resource(MainImage(image.clone()));
 
-    let image_shader_handle = import_shader(IMAGE_SHADER, IMAGE_SHADER_HANDLE, &mut shaders);
-
-    // let image_shader = Shader::from_wgsl(Cow::from(IMAGE_SHADER));
-    // shaders.set_untracked(IMAGE_SHADER_HANDLE.clone(), image_shader);
-    // let image_handle: Handle<Shader> = IMAGE_SHADER_HANDLE.clone().typed();
-
-    let texture_a_shader_handle =
-        import_shader(TEXTURE_A_SHADER, TEXTURE_A_SHADER_HANDLE, &mut shaders);
-
-    let texture_b_shader_handle =
-        import_shader(TEXTURE_B_SHADER, TEXTURE_B_SHADER_HANDLE, &mut shaders);
-
-    let texture_c_shader_handle =
-        import_shader(TEXTURE_C_SHADER, TEXTURE_C_SHADER_HANDLE, &mut shaders);
-
-    let texture_d_shader_handle =
-        import_shader(TEXTURE_D_SHADER, TEXTURE_D_SHADER_HANDLE, &mut shaders);
-
-    // let main_load = asset_server.load("shaders/image_load.wgsl");
-
-    let all_shader_handles = ShaderHandles {
-        image_shader: image_shader_handle,
-        texture_a_shader: texture_a_shader_handle,
-        texture_b_shader: texture_b_shader_handle,
-        texture_c_shader: texture_c_shader_handle,
-        texture_d_shader: texture_d_shader_handle,
-    };
-
-    commands.insert_resource(all_shader_handles);
+    commands.insert_resource(all_shader_handles.clone());
 }
 
 fn queue_bind_group(
