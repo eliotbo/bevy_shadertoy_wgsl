@@ -55,7 +55,7 @@ impl FromWorld for TextureAPipeline {
         let texture_a_bind_group_layout = world
             .resource::<RenderDevice>()
             .create_bind_group_layout(&BindGroupLayoutDescriptor {
-                label: None,
+                label: Some("layout_a"),
                 entries: &[
                     BindGroupLayoutEntry {
                         binding: 0,
@@ -82,14 +82,8 @@ impl FromWorld for TextureAPipeline {
                 ],
             });
 
-        // let shader = world
-        //     .resource::<AssetServer>()
-        //     .load("shaders/texture_b.wgsl");
-
         TextureAPipeline {
-            // texture_b_bind_group_layout,
             texture_a_bind_group_layout,
-            // common_uniform_layout,
         }
     }
 }
@@ -111,11 +105,7 @@ pub fn queue_bind_group_a(
 ) {
     let init_pipeline = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
         label: None,
-        layout: Some(vec![
-            // pipeline.common_uniform_layout.clone(),
-            pipeline.texture_a_bind_group_layout.clone(),
-            // pipeline.texture_b_bind_group_layout.clone(),
-        ]),
+        layout: Some(vec![pipeline.texture_a_bind_group_layout.clone()]),
         shader: all_shader_handles.texture_a_shader.clone(),
         shader_defs: vec![],
         entry_point: Cow::from("init"),
@@ -123,11 +113,7 @@ pub fn queue_bind_group_a(
 
     let update_pipeline = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
         label: None,
-        layout: Some(vec![
-            // pipeline.common_uniform_layout.clone(),
-            pipeline.texture_a_bind_group_layout.clone(),
-            // pipeline.texture_b_bind_group_layout.clone(),
-        ]),
+        layout: Some(vec![pipeline.texture_a_bind_group_layout.clone()]),
         shader: all_shader_handles.texture_a_shader.clone(),
         shader_defs: vec![],
         entry_point: Cow::from("update"),

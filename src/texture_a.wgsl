@@ -1,25 +1,3 @@
-// [[group(0), binding(0)]]
-// var texture: texture_storage_2d<rgba8unorm, read_write>;
-
-// [[group(0), binding(1)]]
-// var<uniform> uni: CommonUniform;
-
-
-
-// struct CommonUniformA {
-//     iChannelTime: vec4<f32>;
-//     iChannelResolution: vec4<f32>;
-//     iDate: vec4<i32>;
-    
-//     iResolution: vec2<f32>;
-//     iMouse: vec2<f32>;
-    
-//     iTime: f32;
-//     iTimeDelta: f32;
-//     iFrame: i32;
-//     iSampleRate: i32;
-// };
-
 struct CommonUniform {
     iTime: f32;
     iTimeDelta: f32;

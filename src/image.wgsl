@@ -1,16 +1,3 @@
-
-
-
-
-// [[group(2), binding(0)]]
-// var buffer_b: texture_storage_2d<rgba8unorm, read_write>;
-
-// [[group(3), binding(0)]]
-// var buffer_c: texture_storage_2d<rgba8unorm, read_write>;
-
-// [[group(4), binding(0)]]
-// var buffer_d: texture_storage_2d<rgba8unorm, read_write>;
-
 struct CommonUniform {
     iTime: f32;
     iTimeDelta: f32;
@@ -34,24 +21,14 @@ var buffer_a: texture_storage_2d<rgba8unorm, read_write>;
 [[group(0), binding(2)]]
 var buffer_b: texture_storage_2d<rgba8unorm, read_write>;
 
+// [[group(0), binding(3)]]
+// var buffer_c: texture_storage_2d<rgba8unorm, read_write>;
+
 [[group(0), binding(3)]]
 var texture: texture_storage_2d<rgba8unorm, read_write>;
 
 
-// [[group(1), binding(0)]]
-// var buffer_b: texture_storage_2d<rgba8unorm, read_write>;
-
-// [[group(2), binding(0)]]
-// var buffer_c: texture_storage_2d<rgba8unorm, read_write>;
-
-// [[group(3), binding(0)]]
-// var buffer_d: texture_storage_2d<rgba8unorm, read_write>;
-
-// [[group(4), binding(0)]]
-// var texture: texture_storage_2d<rgba8unorm, read_write>;
-
-
-{{COMMON}}
+// {{COMMON}}
 
 
 fn hash(value: u32) -> u32 {

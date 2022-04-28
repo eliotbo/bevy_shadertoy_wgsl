@@ -47,7 +47,7 @@ impl FromWorld for TextureBPipeline {
         let texture_b_bind_group_layout = world
             .resource::<RenderDevice>()
             .create_bind_group_layout(&BindGroupLayoutDescriptor {
-                label: None,
+                label: Some("layout_b"),
                 entries: &[
                     BindGroupLayoutEntry {
                         binding: 0,
@@ -84,17 +84,6 @@ impl FromWorld for TextureBPipeline {
                 ],
             });
 
-        // let texture_a_bind_group_layout = world
-        //     .resource::<RenderDevice>()
-        //     .create_bind_group_layout(&BindGroupLayoutDescriptor {
-        //         label: None,
-        //         entries: &[],
-        //     });
-
-        // let shader = world
-        //     .resource::<AssetServer>()
-        //     .load("shaders/texture_b.wgsl");
-
         TextureBPipeline {
             texture_b_bind_group_layout,
             // texture_a_bind_group_layout,
@@ -119,10 +108,7 @@ pub fn queue_bind_group_b(
 ) {
     let init_pipeline = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
         label: None,
-        layout: Some(vec![
-            // pipeline.texture_a_bind_group_layout.clone(),
-            pipeline.texture_b_bind_group_layout.clone(),
-        ]),
+        layout: Some(vec![pipeline.texture_b_bind_group_layout.clone()]),
         shader: all_shader_handles.texture_b_shader.clone(),
         shader_defs: vec![],
         entry_point: Cow::from("init"),
@@ -130,10 +116,7 @@ pub fn queue_bind_group_b(
 
     let update_pipeline = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
         label: None,
-        layout: Some(vec![
-            // pipeline.texture_a_bind_group_layout.clone(),
-            pipeline.texture_b_bind_group_layout.clone(),
-        ]),
+        layout: Some(vec![pipeline.texture_b_bind_group_layout.clone()]),
         shader: all_shader_handles.texture_b_shader.clone(),
         shader_defs: vec![],
         entry_point: Cow::from("update"),
@@ -143,7 +126,7 @@ pub fn queue_bind_group_b(
     let view_b = &gpu_images[&texture_b.0];
 
     let texture_b_bind_group = render_device.create_bind_group(&BindGroupDescriptor {
-        label: None,
+        label: Some("binding b"),
         layout: &pipeline.texture_b_bind_group_layout,
         entries: &[
             BindGroupEntry {

@@ -25,7 +25,7 @@ var buffer_b: texture_storage_2d<rgba8unorm, read_write>;
 
 
 
-{{COMMON}}
+// {{COMMON}}
 
 [[stage(compute), workgroup_size(8, 8, 1)]]
 fn init([[builtin(global_invocation_id)]] invocation_id: vec3<u32>, [[builtin(num_workgroups)]] num_workgroups: vec3<u32>) {
@@ -45,7 +45,7 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
     // textureStore(buffer_b, location, vec4<f32>(0.85));
 
 
-    // if (uni.iTime > 1.0) {
-    //     textureStore(buffer_b, location, vec4<f32>(0.95));
-    // }
+    if (uni.iTime > 1.0) {
+        textureStore(buffer_b, location, vec4<f32>(0.95));
+    }
 }
