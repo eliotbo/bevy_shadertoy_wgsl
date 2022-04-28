@@ -98,7 +98,8 @@ fn main() {
 fn setup(
     mut commands: Commands,
     mut images: ResMut<Assets<Image>>,
-    mut shaders: ResMut<Assets<Shader>>,
+    // mut shaders: ResMut<Assets<Shader>>,
+    asset_server: Res<AssetServer>,
 ) {
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
 
@@ -222,58 +223,64 @@ fn setup(
     //
     //
     // import shaders
-    let image_shader_handle = import_shader(
-        IMAGE_SHADER,
-        IMAGE_SHADER_HANDLE,
-        &mut shaders,
-        IMAGE_CORE_SCRIPT,
-        "{{IMAGE}}",
-    );
 
-    // let image_shader = Shader::from_wgsl(Cow::from(IMAGE_SHADER));
-    // shaders.set_untracked(IMAGE_SHADER_HANDLE.clone(), image_shader);
-    // let image_handle: Handle<Shader> = IMAGE_SHADER_HANDLE.clone().typed();
+    //
+    // let image_shader_handle = import_shader(
+    //     IMAGE_SHADER,
+    //     IMAGE_SHADER_HANDLE,
+    //     &mut shaders,
+    //     IMAGE_CORE_SCRIPT,
+    //     "{{IMAGE}}",
+    // );
 
-    let texture_a_shader_handle = import_shader(
-        TEXTURE_A_SHADER,
-        TEXTURE_A_SHADER_HANDLE,
-        &mut shaders,
-        TEXTURE_A_CORE_SCRIPT,
-        "{{TEXTURE_A}}",
-    );
+    // // let image_shader = Shader::from_wgsl(Cow::from(IMAGE_SHADER));
+    // // shaders.set_untracked(IMAGE_SHADER_HANDLE.clone(), image_shader);
+    // // let image_handle: Handle<Shader> = IMAGE_SHADER_HANDLE.clone().typed();
 
-    let texture_b_shader_handle = import_shader(
-        TEXTURE_B_SHADER,
-        TEXTURE_B_SHADER_HANDLE,
-        &mut shaders,
-        TEXTURE_B_CORE_SCRIPT,
-        "{{TEXTURE_B}}",
-    );
+    // let texture_a_shader_handle = import_shader(
+    //     TEXTURE_A_SHADER,
+    //     TEXTURE_A_SHADER_HANDLE,
+    //     &mut shaders,
+    //     TEXTURE_A_CORE_SCRIPT,
+    //     "{{TEXTURE_A}}",
+    // );
 
-    let texture_c_shader_handle = import_shader(
-        TEXTURE_C_SHADER,
-        TEXTURE_C_SHADER_HANDLE,
-        &mut shaders,
-        TEXTURE_C_CORE_SCRIPT,
-        "{{TEXTURE_C}}",
-    );
+    // let texture_b_shader_handle = import_shader(
+    //     TEXTURE_B_SHADER,
+    //     TEXTURE_B_SHADER_HANDLE,
+    //     &mut shaders,
+    //     TEXTURE_B_CORE_SCRIPT,
+    //     "{{TEXTURE_B}}",
+    // );
 
-    let texture_d_shader_handle = import_shader(
-        TEXTURE_D_SHADER,
-        TEXTURE_D_SHADER_HANDLE,
-        &mut shaders,
-        TEXTURE_D_CORE_SCRIPT,
-        "{{TEXTURE_D}}",
-    );
+    // let texture_c_shader_handle = import_shader(
+    //     TEXTURE_C_SHADER,
+    //     TEXTURE_C_SHADER_HANDLE,
+    //     &mut shaders,
+    //     TEXTURE_C_CORE_SCRIPT,
+    //     "{{TEXTURE_C}}",
+    // );
 
-    // let main_load = asset_server.load("shaders/image_load.wgsl");
+    // let texture_d_shader_handle = import_shader(
+    //     TEXTURE_D_SHADER,
+    //     TEXTURE_D_SHADER_HANDLE,
+    //     &mut shaders,
+    //     TEXTURE_D_CORE_SCRIPT,
+    //     "{{TEXTURE_D}}",
+    // );
+
+    let image_shader_handle = asset_server.load("shaders/image_load.wgsl");
+    let texture_a_shader = asset_server.load("shaders/buffer_a.wgsl");
+    let texture_b_shader = asset_server.load("shaders/buffer_b.wgsl");
+    let texture_c_shader = asset_server.load("shaders/buffer_c.wgsl");
+    let texture_d_shader = asset_server.load("shaders/buffer_d.wgsl");
 
     let all_shader_handles = ShaderHandles {
         image_shader: image_shader_handle,
-        texture_a_shader: texture_a_shader_handle,
-        texture_b_shader: texture_b_shader_handle,
-        texture_c_shader: texture_c_shader_handle,
-        texture_d_shader: texture_d_shader_handle,
+        texture_a_shader,
+        texture_b_shader,
+        texture_c_shader,
+        texture_d_shader,
     };
 
     commands.insert_resource(all_shader_handles);
