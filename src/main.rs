@@ -1,6 +1,6 @@
 use bevy::{
     core_pipeline::node::MAIN_PASS_DEPENDENCIES,
-    // diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
+    diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
     prelude::*,
     reflect::TypeUuid,
     render::{
@@ -33,42 +33,42 @@ pub const SIZE: (u32, u32) = (1280, 720);
 pub const WORKGROUP_SIZE: u32 = 8;
 pub const NUM_PARTICLES: u32 = 256;
 
-const COMMON: &'static str = include_str!("common.wgsl");
+// const COMMON: &'static str = include_str!("common.wgsl");
 
-const IMAGE_SHADER: &'static str = include_str!("templates/image_template.wgsl");
-const IMAGE_CORE_SCRIPT: &'static str = include_str!("image.wgsl");
-pub const IMAGE_SHADER_HANDLE: HandleUntyped = HandleUntyped::weak_from_u64(
-    bevy::render::render_resource::Shader::TYPE_UUID,
-    192598017680025719,
-);
+// const IMAGE_SHADER: &'static str = include_str!("templates/image_template.wgsl");
+// const IMAGE_CORE_SCRIPT: &'static str = include_str!("templates/image.wgsl");
+// pub const IMAGE_SHADER_HANDLE: HandleUntyped = HandleUntyped::weak_from_u64(
+//     bevy::render::render_resource::Shader::TYPE_UUID,
+//     192598017680025719,
+// );
 
-const TEXTURE_A_SHADER: &'static str = include_str!("templates/texture_a_template.wgsl");
-const TEXTURE_A_CORE_SCRIPT: &'static str = include_str!("texture_a.wgsl");
-pub const TEXTURE_A_SHADER_HANDLE: HandleUntyped = HandleUntyped::weak_from_u64(
-    bevy::render::render_resource::Shader::TYPE_UUID,
-    986988749367675188,
-);
+// const TEXTURE_A_SHADER: &'static str = include_str!("templates/texture_a_template.wgsl");
+// const TEXTURE_A_CORE_SCRIPT: &'static str = include_str!("templates/texture_a.wgsl");
+// pub const TEXTURE_A_SHADER_HANDLE: HandleUntyped = HandleUntyped::weak_from_u64(
+//     bevy::render::render_resource::Shader::TYPE_UUID,
+//     986988749367675188,
+// );
 
-const TEXTURE_B_SHADER: &'static str = include_str!("templates/texture_b_template.wgsl");
-const TEXTURE_B_CORE_SCRIPT: &'static str = include_str!("texture_b.wgsl");
-pub const TEXTURE_B_SHADER_HANDLE: HandleUntyped = HandleUntyped::weak_from_u64(
-    bevy::render::render_resource::Shader::TYPE_UUID,
-    808999425257967014,
-);
+// const TEXTURE_B_SHADER: &'static str = include_str!("templates/texture_b_template.wgsl");
+// const TEXTURE_B_CORE_SCRIPT: &'static str = include_str!("templates/texture_b.wgsl");
+// pub const TEXTURE_B_SHADER_HANDLE: HandleUntyped = HandleUntyped::weak_from_u64(
+//     bevy::render::render_resource::Shader::TYPE_UUID,
+//     808999425257967014,
+// );
 
-const TEXTURE_C_SHADER: &'static str = include_str!("templates/texture_c_template.wgsl");
-const TEXTURE_C_CORE_SCRIPT: &'static str = include_str!("texture_c.wgsl");
-pub const TEXTURE_C_SHADER_HANDLE: HandleUntyped = HandleUntyped::weak_from_u64(
-    bevy::render::render_resource::Shader::TYPE_UUID,
-    819348234244712380,
-);
+// const TEXTURE_C_SHADER: &'static str = include_str!("templates/texture_c_template.wgsl");
+// const TEXTURE_C_CORE_SCRIPT: &'static str = include_str!("templates/texture_c.wgsl");
+// pub const TEXTURE_C_SHADER_HANDLE: HandleUntyped = HandleUntyped::weak_from_u64(
+//     bevy::render::render_resource::Shader::TYPE_UUID,
+//     819348234244712380,
+// );
 
-const TEXTURE_D_SHADER: &'static str = include_str!("templates/texture_d_template.wgsl");
-const TEXTURE_D_CORE_SCRIPT: &'static str = include_str!("texture_d.wgsl");
-pub const TEXTURE_D_SHADER_HANDLE: HandleUntyped = HandleUntyped::weak_from_u64(
-    bevy::render::render_resource::Shader::TYPE_UUID,
-    193535259211504032,
-);
+// const TEXTURE_D_SHADER: &'static str = include_str!("templates/texture_d_template.wgsl");
+// const TEXTURE_D_CORE_SCRIPT: &'static str = include_str!("templates/texture_d.wgsl");
+// pub const TEXTURE_D_SHADER_HANDLE: HandleUntyped = HandleUntyped::weak_from_u64(
+//     bevy::render::render_resource::Shader::TYPE_UUID,
+//     193535259211504032,
+// );
 
 fn main() {
     // // not sure this works on wasm
@@ -82,14 +82,14 @@ fn main() {
     // app.insert_resource(wgpu_options)
     app.insert_resource(ClearColor(Color::BLACK))
         .insert_resource(WindowDescriptor {
-            // uncomment for unthrottled FPS
-            present_mode: PresentMode::Immediate,
-            // vsync: false,
+            present_mode: PresentMode::Immediate, // uncomment for unthrottled FPS
             ..default()
         })
         .add_plugins(DefaultPlugins)
         .add_system(bevy::input::system::exit_on_esc_system)
         .add_plugin(ShadertoyPlugin)
+        .add_plugin(FrameTimeDiagnosticsPlugin::default())
+        .add_plugin(LogDiagnosticsPlugin::default())
         .add_startup_system(setup)
         .add_system(update_common_uniform)
         .run();
@@ -100,6 +100,7 @@ fn setup(
     mut images: ResMut<Assets<Image>>,
     // mut shaders: ResMut<Assets<Shader>>,
     asset_server: Res<AssetServer>,
+    windows: Res<Windows>,
 ) {
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
 
@@ -129,7 +130,12 @@ fn setup(
         ..default()
     });
 
-    commands.insert_resource(CommonUniform::default());
+    let window = windows.primary();
+    let mut common_uniform = CommonUniform::default();
+
+    common_uniform.i_resolution.x = window.width();
+    common_uniform.i_resolution.y = window.height();
+    commands.insert_resource(common_uniform);
 
     //
     //
@@ -269,11 +275,13 @@ fn setup(
     //     "{{TEXTURE_D}}",
     // );
 
-    let image_shader_handle = asset_server.load("shaders/image_load.wgsl");
-    let texture_a_shader = asset_server.load("shaders/buffer_a.wgsl");
-    let texture_b_shader = asset_server.load("shaders/buffer_b.wgsl");
-    let texture_c_shader = asset_server.load("shaders/buffer_c.wgsl");
-    let texture_d_shader = asset_server.load("shaders/buffer_d.wgsl");
+    let example = "paint";
+
+    let image_shader_handle = asset_server.load(&format!("shaders/{}/image.wgsl", example));
+    let texture_a_shader = asset_server.load(&format!("shaders/{}/buffer_a.wgsl", example));
+    let texture_b_shader = asset_server.load(&format!("shaders/{}/buffer_b.wgsl", example));
+    let texture_c_shader = asset_server.load(&format!("shaders/{}/buffer_c.wgsl", example));
+    let texture_d_shader = asset_server.load(&format!("shaders/{}/buffer_d.wgsl", example));
 
     let all_shader_handles = ShaderHandles {
         image_shader: image_shader_handle,
@@ -286,6 +294,7 @@ fn setup(
     commands.insert_resource(all_shader_handles);
 }
 
+// Copied from Shadertoy.com :
 // uniform vec3      iResolution;           // viewport resolution (in pixels)
 // uniform float     iTime;                 // shader playback time (in seconds)
 // uniform float     iTimeDelta;            // render time (in seconds)
@@ -301,15 +310,15 @@ fn setup(
 pub struct CommonUniform {
     pub i_time: f32,
     pub i_time_delta: f32,
-    pub i_frame: i32,
-    pub i_sample_rate: i32, // sound sample rate
+    pub i_frame: f32,
+    pub i_sample_rate: f32, // sound sample rate
+
+    pub i_mouse: Vec4,
+    pub i_resolution: Vec2,
 
     pub i_channel_time: Vec4,
     pub i_channel_resolution: Vec4,
     pub i_date: [i32; 4],
-
-    pub i_resolution: Vec2,
-    pub i_mouse: Vec2,
 }
 
 pub struct CommonUniformMeta {
@@ -322,6 +331,7 @@ fn update_common_uniform(
     mut window_resize_event: EventReader<WindowResized>,
     windows: Res<Windows>,
     time: Res<Time>,
+    mouse_button_input: Res<Input<MouseButton>>,
 ) {
     // update resolution
     for window_resize in window_resize_event.iter() {
@@ -332,15 +342,31 @@ fn update_common_uniform(
     // update mouse position
     let window = windows.primary();
     if let Some(mouse_pos) = window.cursor_position() {
-        common_uniform.i_mouse = mouse_pos;
-        // println!("{:?}", mouse_pos);
+        let mut mp = mouse_pos;
+        mp.x = mp.x / common_uniform.i_resolution.x;
+        mp.y = mp.y / common_uniform.i_resolution.y;
+
+        common_uniform.i_mouse.x = mp.x;
+        common_uniform.i_mouse.y = mp.y;
+        common_uniform.i_mouse.z = if mouse_button_input.pressed(MouseButton::Left) {
+            1.0
+        } else {
+            0.0
+        };
+        common_uniform.i_mouse.w = if mouse_button_input.just_pressed(MouseButton::Left) {
+            1.0
+        } else {
+            0.0
+        };
+
+        // println!("{:?}", mp);
     }
 
     // update time
     common_uniform.i_time = time.seconds_since_startup() as f32;
     common_uniform.i_time_delta = time.delta_seconds() as f32;
 
-    common_uniform.i_frame += 1;
+    common_uniform.i_frame += 1.0;
 
     // println!("{:?}", common_uniform.iTime);
 }
@@ -529,22 +555,22 @@ pub fn prepare_common_uniform(
     );
 }
 
-fn import_shader(
-    shader_skeleton: &str,
-    shader_handle_untyped: HandleUntyped,
-    shaders: &mut Assets<Shader>,
-    shader_core_script: &str,
-    signature: &str,
-) -> Handle<Shader> {
-    //
-    // insert common code in every shader
-    let mut image_source = shader_skeleton.replace("{{COMMON}}", &COMMON);
-    image_source = image_source.replace(signature, shader_core_script);
+// fn import_shader(
+//     shader_skeleton: &str,
+//     shader_handle_untyped: HandleUntyped,
+//     shaders: &mut Assets<Shader>,
+//     shader_core_script: &str,
+//     signature: &str,
+// ) -> Handle<Shader> {
+//     //
+//     // insert common code in every shader
+//     let mut image_source = shader_skeleton.replace("{{COMMON}}", &COMMON);
+//     image_source = image_source.replace(signature, shader_core_script);
 
-    let image_shader = Shader::from_wgsl(Cow::from(image_source));
-    shaders.set_untracked(shader_handle_untyped.clone(), image_shader.clone());
-    shader_handle_untyped.typed()
-}
+//     let image_shader = Shader::from_wgsl(Cow::from(image_source));
+//     shaders.set_untracked(shader_handle_untyped.clone(), image_shader.clone());
+//     shader_handle_untyped.typed()
+// }
 
 fn extract_main_image(
     mut commands: Commands,
