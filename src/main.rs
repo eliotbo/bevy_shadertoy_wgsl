@@ -275,7 +275,8 @@ fn setup(
     //     "{{TEXTURE_D}}",
     // );
 
-    let example = "paint";
+    // let example = "paint";
+    let example = "liquid";
 
     let image_shader_handle = asset_server.load(&format!("shaders/{}/image.wgsl", example));
     let texture_a_shader = asset_server.load(&format!("shaders/{}/buffer_a.wgsl", example));

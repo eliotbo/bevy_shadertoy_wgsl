@@ -8,8 +8,9 @@ struct CommonUniform {
     iFrame: f32;
     iSampleRate: f32;
 
+    iMouse: vec4<f32>;
     iResolution: vec2<f32>;
-    iMouse: vec2<f32>;
+    
 
     iChannelTime: vec4<f32>;
     iChannelResolution: vec4<f32>;
