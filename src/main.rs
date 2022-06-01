@@ -16,6 +16,7 @@ use bevy::{
 };
 
 use std::borrow::Cow;
+use std::fs; // not compatible with WASM -->
 
 mod texture_a;
 use texture_a::*;
@@ -275,8 +276,42 @@ fn setup(
     //     "{{TEXTURE_D}}",
     // );
 
-    // let example = "paint";
-    let example = "liquid";
+    let example = "paint2";
+    // let example = "simplest_detailed_fluid";
+    // let example = "interactive_fluid_simulation";
+    // let example = "liquid"; https://www.shadertoy.com/view/WtfyDj
+
+    let all_shader_handles: ShaderHandles = make_and_load_shaders2(example, &asset_server);
+
+    commands.insert_resource(all_shader_handles);
+}
+
+pub fn make_and_load_shaders(example: &str, asset_server: &Res<AssetServer>) -> ShaderHandles {
+    let image_shader_handle = asset_server.load(&format!("shaders/{}/image.wgsl", example));
+    let texture_a_shader = asset_server.load(&format!("shaders/{}/buffer_a.wgsl", example));
+    let texture_b_shader = asset_server.load(&format!("shaders/{}/buffer_b.wgsl", example));
+    let texture_c_shader = asset_server.load(&format!("shaders/{}/buffer_c.wgsl", example));
+    let texture_d_shader = asset_server.load(&format!("shaders/{}/buffer_d.wgsl", example));
+
+    ShaderHandles {
+        image_shader: image_shader_handle,
+        texture_a_shader,
+        texture_b_shader,
+        texture_c_shader,
+        texture_d_shader,
+    }
+}
+
+pub fn make_and_load_shaders2(example: &str, asset_server: &Res<AssetServer>) -> ShaderHandles {
+    // let image_shader_handle = asset_server.load(&format!("shaders/{}/image.wgsl", example));
+
+    // let example_string = example.to_string();
+
+    //     //
+
+    format_and_save_shader(example, "image");
+    format_and_save_shader(example, "buffer_a");
+    format_and_save_shader(example, "buffer_b");
 
     let image_shader_handle = asset_server.load(&format!("shaders/{}/image.wgsl", example));
     let texture_a_shader = asset_server.load(&format!("shaders/{}/buffer_a.wgsl", example));
@@ -284,16 +319,60 @@ fn setup(
     let texture_c_shader = asset_server.load(&format!("shaders/{}/buffer_c.wgsl", example));
     let texture_d_shader = asset_server.load(&format!("shaders/{}/buffer_d.wgsl", example));
 
-    let all_shader_handles = ShaderHandles {
+    ShaderHandles {
         image_shader: image_shader_handle,
         texture_a_shader,
         texture_b_shader,
         texture_c_shader,
         texture_d_shader,
+    }
+}
+
+// This function uses the std library and isn't compatible with wasm
+fn format_and_save_shader(example: &str, buffer_type: &str) {
+    let common_prelude = include_str!("templates/common_prelude.wgsl");
+
+    let template = match buffer_type {
+        "image" => include_str!("templates/image_template.wgsl"),
+        "buffer_a" => include_str!("templates/buffer_a_template.wgsl"),
+        "buffer_b" => include_str!("templates/buffer_b_template.wgsl"),
+        "buffer_c" => include_str!("templates/buffer_c_template.wgsl"),
+        "buffer_d" => include_str!("templates/buffer_d_template.wgsl"),
+        _ => include_str!("templates/buffer_d_template.wgsl"),
     };
 
-    commands.insert_resource(all_shader_handles);
+    let mut shader_content = template.replace("{{COMMON_PRELUDE}}", common_prelude);
+
+    let path_to_code_block = format!("examples/{}/{}.wgsl", example, buffer_type);
+    let path_to_common = format!("examples/{}/common.wgsl", example);
+
+    let common = fs::read_to_string(path_to_common).expect("could not read file.");
+    let image_main = fs::read_to_string(path_to_code_block).expect("could not read file.");
+
+    let mut shader_content = shader_content.replace("{{COMMON}}", &common);
+    shader_content = shader_content.replace("{{CODE_BLOCK}}", &image_main);
+    let path = format!("assets/shaders/{}/{}.wgsl", example, buffer_type);
+    println!("{}", path);
+    fs::write(path, shader_content).expect("Unable to write file");
 }
+
+// fn import_shader(
+//     shader_skeleton: &str,
+//     shader_handle_untyped: HandleUntyped,
+//     shaders: &mut Assets<Shader>,
+//     shader_core_script: &str,
+//     signature: &str,
+// ) -> Handle<Shader> {
+//     //
+//     // insert common code in every shader
+//     let shader_prelude =
+//     let mut image_source = shader_skeleton.replace("{{COMMON}}", &COMMON);
+//     image_source = image_source.replace(signature, shader_core_script);
+
+//     let image_shader = Shader::from_wgsl(Cow::from(image_source));
+//     shaders.set_untracked(shader_handle_untyped.clone(), image_shader.clone());
+//     shader_handle_untyped.typed()
+// }
 
 // Copied from Shadertoy.com :
 // uniform vec3      iResolution;           // viewport resolution (in pixels)
@@ -369,7 +448,7 @@ fn update_common_uniform(
 
     common_uniform.i_frame += 1.0;
 
-    // println!("{:?}", common_uniform.iTime);
+    println!("{:?}", common_uniform.i_frame);
 }
 
 pub struct ShadertoyPlugin;
@@ -385,6 +464,9 @@ pub struct ShaderHandles {
 
 impl Plugin for ShadertoyPlugin {
     fn build(&self, app: &mut App) {
+        // let mut common_uniform = app.world.resource_mut::<CommonUniform>();
+        // common_uniform.i_frame += 1.0;
+
         let render_app = app.sub_app_mut(RenderApp);
 
         let render_device = render_app.world.resource::<RenderDevice>();
@@ -556,23 +638,6 @@ pub fn prepare_common_uniform(
     );
 }
 
-// fn import_shader(
-//     shader_skeleton: &str,
-//     shader_handle_untyped: HandleUntyped,
-//     shaders: &mut Assets<Shader>,
-//     shader_core_script: &str,
-//     signature: &str,
-// ) -> Handle<Shader> {
-//     //
-//     // insert common code in every shader
-//     let mut image_source = shader_skeleton.replace("{{COMMON}}", &COMMON);
-//     image_source = image_source.replace(signature, shader_core_script);
-
-//     let image_shader = Shader::from_wgsl(Cow::from(image_source));
-//     shaders.set_untracked(shader_handle_untyped.clone(), image_shader.clone());
-//     shader_handle_untyped.typed()
-// }
-
 fn extract_main_image(
     mut commands: Commands,
     image: Res<MainImage>,
@@ -606,8 +671,8 @@ fn queue_bind_group(
         label: None,
         layout: Some(vec![pipeline.main_image_group_layout.clone()]),
         shader: all_shader_handles.image_shader.clone(),
-        shader_defs: vec![],
-        entry_point: Cow::from("init"),
+        shader_defs: vec!["INIT".to_string()],
+        entry_point: Cow::from("update"),
     });
 
     let update_pipeline = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {

@@ -111,8 +111,8 @@ pub fn queue_bind_group_c(
         label: None,
         layout: Some(vec![pipeline.texture_c_bind_group_layout.clone()]),
         shader: all_shader_handles.texture_c_shader.clone(),
-        shader_defs: vec![],
-        entry_point: Cow::from("init"),
+        shader_defs: vec!["INIT".to_string()],
+        entry_point: Cow::from("update"),
     });
 
     let update_pipeline = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {

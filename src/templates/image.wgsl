@@ -12,17 +12,6 @@ fn randomFloat(value: u32) -> f32 {
     return f32(hash(value)) / 4294967295.0;
 }
 
-[[stage(compute), workgroup_size(8, 8, 1)]]
-fn init([[builtin(global_invocation_id)]] invocation_id: vec3<u32>, [[builtin(num_workgroups)]] num_workgroups: vec3<u32>) {
-    let location = vec2<i32>(i32(invocation_id.x), i32(invocation_id.y));
-    let location_f32 = vec2<f32>(f32(invocation_id.x), f32(invocation_id.y));
-
-    let randomNumber = randomFloat(invocation_id.y * num_workgroups.x + invocation_id.x);
-    let alive = randomNumber > 0.9;
-    let color = vec4<f32>(f32(alive));
-
-    textureStore(texture, location, color);
-}
 
 
 // fn get(location: vec2<i32>, offset_x: i32, offset_y: i32) -> i32 {
