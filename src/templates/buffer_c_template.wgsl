@@ -9,6 +9,9 @@ var buffer_b: texture_storage_2d<rgba8unorm, read_write>;
 [[group(0), binding(3)]]
 var buffer_c: texture_storage_2d<rgba8unorm, read_write>;
 
+[[group(0), binding(4)]]
+var buffer_d: texture_storage_2d<rgba8unorm, read_write>;
+
 {{COMMON}}
 
 {{CODE_BLOCK}}

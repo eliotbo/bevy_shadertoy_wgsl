@@ -19,6 +19,17 @@ var<uniform> uni: CommonUniform;
 [[group(0), binding(1)]]
 var buffer_a: texture_storage_2d<rgba8unorm, read_write>;
 
+[[group(0), binding(2)]]
+var buffer_b: texture_storage_2d<rgba8unorm, read_write>;
+
+[[group(0), binding(3)]]
+var buffer_c: texture_storage_2d<rgba8unorm, read_write>;
+
+[[group(0), binding(4)]]
+var buffer_d: texture_storage_2d<rgba8unorm, read_write>;
+
+
+
 
 type float2 = vec2<f32>;
 type float4 = vec4<f32>;
@@ -27,63 +38,9 @@ fn hue(v: f32) -> vec4<f32> {
     return (vec4<f32>(.6) + vec4<f32>(.6) * cos( vec4<f32>(6.3 * v) + vec4<f32>(0.0,23.0,21.0,0.0 ) ));
 }
 
-// fn keyToggle(a)  ( textureLoad(iChannel3, ivec2(a,2),0).x > 0.)
-// fn keyDown(a)    ( textureLoad(iChannel3, ivec2(a,1),0).x > 0.)
-// fn keyClick(a)   ( textureLoad(iChannel3, ivec2(a,0),0).x > 0.)
-
 fn smoothit(v: f32) -> f32{ 
     return smoothStep( 1.5, 0., v );
 }
-
-
-// let #define T(U)            texelFetch( iChannel0, ivec2(U), 0 )
-
-// #define T(U)            texelFetch( iChannel0, ivec2(U), 0 )
-// #define hue(v)        ( .6 + .6 * cos( 6.3*(v)  + vec4(0,23,21,0)  ) ) // https://www.shadertoy.com/view/llySRh
-// #define keyToggle(a)  ( texelFetch(iChannel3,ivec2(a,2),0).x > 0.)
-// #define keyDown(a)    ( texelFetch(iChannel3,ivec2(a,1),0).x > 0.)
-// #define keyClick(a)   ( texelFetch(iChannel3,ivec2(a,0),0).x > 0.)
-// #define S(v)            smoothstep( 1.5, 0., v )
-
-
-// void mainImage( out vec4 O, vec2 u )
-// {
-//     vec2 R = iResolution.xy, U = u / R.y, P,m;
-//     vec4 M = iMouse;
-//     O = T(u);                                                        // restore previous state
-//     if (iFrame<1  )                                  // start or 'C': reset
-//         O = vec4(0,0,0,1);
-
-
-
-//     if ( u == vec2(1.5) ) { O.xy = M.xy; return; }                   // memo prev mouse
-//     if ( u == vec2(.5) ) {
-//         if ( M.z > 0. &&  M.x/R.y < .1  )   {     // choose color in palette or pick in paint
-//             // O = T(M.xy);
-//             O = textureLoad(buffer_a, location);
-//             O /= O.w; 
-//         }
-//     }
-
-
-//     if ( U.x<.1  ) {                                                 // display palette on left
-//         float y = floor(9.*U.y);
-//         O = y==8. ? vec4(1) : y==7. ? vec4(0) : hue( y/8.) ; O.w = 1.;
-//         return;
-//     }
-    
-//     P = M.w > 0. ? M.xy : T(1).xy;                                   // prev mouse or start stroke 
-//     m = abs( (M.xy+P)/2. - u ) - abs(M.xy-P)/2.;                     // for bounding box
-    
-//     if (M.z > 0.  && M.xy != P ) {                                    // paint
-//       if ( max(m.x,m.y)< 20. )    {                                   // optim: bounding box
-//         for( float  l = length(M.xy-P), d = 0.; d < l ; d++ ) {
-//         O +=  smoothit( length( mix( M.xy, P, d/l ) - u ) - 20. ) / 20. * T(0); 
-//         }
-//       }
-//     }
-
-// }
 
 fn sdSegment(p: vec2<f32>, a: vec2<f32>, b: vec2<f32>) -> f32 {
   let pa = p - a;
@@ -158,27 +115,39 @@ fn sdCircle(p: vec2<f32>, c: vec2<f32>, r: f32) -> f32 {
   return d - r;
 }
 
-[[stage(compute), workgroup_size(8, 8, 1)]]
-fn init([[builtin(global_invocation_id)]] invocation_id: vec3<u32>, [[builtin(num_workgroups)]] num_workgroups: vec3<u32>) {
-    let location = vec2<i32>(i32(invocation_id.x), i32(invocation_id.y));
-    let location_f32 = vec2<f32>(f32(invocation_id.x), f32(invocation_id.y));
+// [[stage(compute), workgroup_size(8, 8, 1)]]
+// fn init([[builtin(global_invocation_id)]] invocation_id: vec3<u32>, [[builtin(num_workgroups)]] num_workgroups: vec3<u32>) {
+//     let location = vec2<i32>(i32(invocation_id.x), i32(invocation_id.y));
+//     let location_f32 = vec2<f32>(f32(invocation_id.x), f32(invocation_id.y));
 
-    if (location.x == 0 && location.y == 0 )  {
-        textureStore(buffer_a, location, hue(4.0 / 8.0));
-    } else {
-        // set brush color to black
-        let black = vec4<f32>(0.0, 0.0, 0.0, 1.0);
-        textureStore(buffer_a, location, black);
-    }
-}
-
-
-
-
+//     # ifdef INIT
+//         if (location.x == 0 && location.y == 0 )  {
+//             textureStore(buffer_a, location, hue(4.0 / 8.0));
+//         } else {
+//             // set brush color to black
+//             let black = vec4<f32>(0.0, 0.0, 0.0, 1.0);
+//             textureStore(buffer_a, location, black);
+//         }
+//     # endif
+// }
 
 [[stage(compute), workgroup_size(8, 8, 1)]]
 fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
     let location = vec2<i32>(i32(invocation_id.x), i32(invocation_id.y));
+
+    // the first three frames are not directed inside the update function.
+    // The first time this function is called is on frame 4.
+    if (i32(uni.iFrame) == 3) { 
+    // # ifdef INIT
+        if (location.x == 0 && location.y == 0 )  {
+            textureStore(buffer_a, location, hue(4.0 / 8.0));
+        } else {
+            // set brush color to black
+            let black = vec4<f32>(0.0, 0.0, 0.0, 1.0);
+            textureStore(buffer_a, location, black);
+        }
+    // # endif
+    }
 
     let R: float2 = uni.iResolution.xy;
     let U: vec2<f32> = vec2<f32>(location) / R;

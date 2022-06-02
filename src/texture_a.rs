@@ -10,6 +10,9 @@ use bevy::{
 
 use std::borrow::Cow;
 
+use crate::texture_b::TextureB;
+use crate::texture_c::TextureC;
+use crate::texture_d::TextureD;
 use crate::{
     CommonUniform, CommonUniformMeta, ShaderHandles, ShadertoyState, SIZE, WORKGROUP_SIZE,
 };
@@ -64,6 +67,36 @@ impl FromWorld for TextureAPipeline {
                         },
                         count: None,
                     },
+                    BindGroupLayoutEntry {
+                        binding: 2,
+                        visibility: ShaderStages::COMPUTE,
+                        ty: BindingType::StorageTexture {
+                            access: StorageTextureAccess::ReadWrite,
+                            format: TextureFormat::Rgba8Unorm,
+                            view_dimension: TextureViewDimension::D2,
+                        },
+                        count: None,
+                    },
+                    BindGroupLayoutEntry {
+                        binding: 3,
+                        visibility: ShaderStages::COMPUTE,
+                        ty: BindingType::StorageTexture {
+                            access: StorageTextureAccess::ReadWrite,
+                            format: TextureFormat::Rgba8Unorm,
+                            view_dimension: TextureViewDimension::D2,
+                        },
+                        count: None,
+                    },
+                    BindGroupLayoutEntry {
+                        binding: 4,
+                        visibility: ShaderStages::COMPUTE,
+                        ty: BindingType::StorageTexture {
+                            access: StorageTextureAccess::ReadWrite,
+                            format: TextureFormat::Rgba8Unorm,
+                            view_dimension: TextureViewDimension::D2,
+                        },
+                        count: None,
+                    },
                 ],
             });
 
@@ -81,8 +114,11 @@ pub fn queue_bind_group_a(
     mut commands: Commands,
     pipeline: Res<TextureAPipeline>,
     gpu_images: Res<RenderAssets<Image>>,
-    // texture_b: Res<TextureA>,
+
     texture_a: Res<TextureA>,
+    texture_b: Res<TextureB>,
+    texture_c: Res<TextureC>,
+    texture_d: Res<TextureD>,
     render_device: Res<RenderDevice>,
     mut pipeline_cache: ResMut<PipelineCache>,
     all_shader_handles: Res<ShaderHandles>,
@@ -104,7 +140,11 @@ pub fn queue_bind_group_a(
         entry_point: Cow::from("update"),
     });
 
-    let texture_a_view = &gpu_images[&texture_a.0];
+    // let texture_a_view = &gpu_images[&texture_a.0];
+    let view_a = &gpu_images[&texture_a.0];
+    let view_b = &gpu_images[&texture_b.0];
+    let view_c = &gpu_images[&texture_c.0];
+    let view_d = &gpu_images[&texture_d.0];
 
     let texture_a_bind_group = render_device.create_bind_group(&BindGroupDescriptor {
         label: Some("texture_a_bind_group"),
@@ -116,7 +156,19 @@ pub fn queue_bind_group_a(
             },
             BindGroupEntry {
                 binding: 1,
-                resource: BindingResource::TextureView(&texture_a_view.texture_view),
+                resource: BindingResource::TextureView(&view_a.texture_view),
+            },
+            BindGroupEntry {
+                binding: 2,
+                resource: BindingResource::TextureView(&view_b.texture_view),
+            },
+            BindGroupEntry {
+                binding: 3,
+                resource: BindingResource::TextureView(&view_c.texture_view),
+            },
+            BindGroupEntry {
+                binding: 4,
+                resource: BindingResource::TextureView(&view_d.texture_view),
             },
         ],
     });

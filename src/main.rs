@@ -276,7 +276,9 @@ fn setup(
     //     "{{TEXTURE_D}}",
     // );
 
-    let example = "paint2";
+    // let example = "minimal";
+    let example = "paint";
+    // let example = "mixing_liquid";
     // let example = "simplest_detailed_fluid";
     // let example = "interactive_fluid_simulation";
     // let example = "liquid"; https://www.shadertoy.com/view/WtfyDj
@@ -304,10 +306,8 @@ pub fn make_and_load_shaders(example: &str, asset_server: &Res<AssetServer>) -> 
 
 pub fn make_and_load_shaders2(example: &str, asset_server: &Res<AssetServer>) -> ShaderHandles {
     // let image_shader_handle = asset_server.load(&format!("shaders/{}/image.wgsl", example));
-
     // let example_string = example.to_string();
-
-    //     //
+    //
 
     format_and_save_shader(example, "image");
     format_and_save_shader(example, "buffer_a");
@@ -351,8 +351,10 @@ fn format_and_save_shader(example: &str, buffer_type: &str) {
 
     let mut shader_content = shader_content.replace("{{COMMON}}", &common);
     shader_content = shader_content.replace("{{CODE_BLOCK}}", &image_main);
-    let path = format!("assets/shaders/{}/{}.wgsl", example, buffer_type);
+    let folder = format!("assets/shaders/{}", example);
+    let path = format!("{}/{}.wgsl", folder, buffer_type);
     println!("{}", path);
+    let _ = fs::create_dir(folder);
     fs::write(path, shader_content).expect("Unable to write file");
 }
 
@@ -447,8 +449,6 @@ fn update_common_uniform(
     common_uniform.i_time_delta = time.delta_seconds() as f32;
 
     common_uniform.i_frame += 1.0;
-
-    println!("{:?}", common_uniform.i_frame);
 }
 
 pub struct ShadertoyPlugin;
