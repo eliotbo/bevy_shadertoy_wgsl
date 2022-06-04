@@ -1,4 +1,3 @@
-
 {{COMMON_PRELUDE}}
 
 [[group(0), binding(1)]]

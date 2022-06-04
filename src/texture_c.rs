@@ -12,6 +12,7 @@ use std::borrow::Cow;
 
 use crate::texture_a::TextureA;
 use crate::texture_b::TextureB;
+use crate::texture_d::TextureD;
 use crate::{
     CommonUniform, CommonUniformMeta, ShaderHandles, ShadertoyState, SIZE, WORKGROUP_SIZE,
 };
@@ -78,6 +79,16 @@ impl FromWorld for TextureCPipeline {
                         },
                         count: None,
                     },
+                    BindGroupLayoutEntry {
+                        binding: 4,
+                        visibility: ShaderStages::COMPUTE,
+                        ty: BindingType::StorageTexture {
+                            access: StorageTextureAccess::ReadWrite,
+                            format: TextureFormat::Rgba8Unorm,
+                            view_dimension: TextureViewDimension::D2,
+                        },
+                        count: None,
+                    },
                 ],
             });
 
@@ -102,6 +113,7 @@ pub fn queue_bind_group_c(
     texture_a_image: Res<TextureA>,
     texture_b_image: Res<TextureB>,
     texture_c_image: Res<TextureC>,
+    texture_d_image: Res<TextureD>,
     render_device: Res<RenderDevice>,
     mut pipeline_cache: ResMut<PipelineCache>,
     all_shader_handles: Res<ShaderHandles>,
@@ -126,6 +138,7 @@ pub fn queue_bind_group_c(
     let texture_a_view = &gpu_images[&texture_a_image.0];
     let texture_b_view = &gpu_images[&texture_b_image.0];
     let texture_c_view = &gpu_images[&texture_c_image.0];
+    let texture_d_view = &gpu_images[&texture_d_image.0];
 
     let texture_c_bind_group = render_device.create_bind_group(&BindGroupDescriptor {
         label: Some("bind_group_c"),
@@ -146,6 +159,10 @@ pub fn queue_bind_group_c(
             BindGroupEntry {
                 binding: 3,
                 resource: BindingResource::TextureView(&texture_c_view.texture_view),
+            },
+            BindGroupEntry {
+                binding: 4,
+                resource: BindingResource::TextureView(&texture_d_view.texture_view),
             },
         ],
     });
