@@ -8,3 +8,4 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
     var O: vec4<f32> =  textureLoad(buffer_a, location);
     textureStore(texture, location, O);
 }
+

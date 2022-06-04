@@ -277,8 +277,8 @@ fn setup(
     // );
 
     // let example = "minimal";
-    let example = "paint";
-    // let example = "mixing_liquid";
+    // let example = "paint";
+    let example = "mixing_liquid";
     // let example = "simplest_detailed_fluid";
     // let example = "interactive_fluid_simulation";
     // let example = "liquid"; https://www.shadertoy.com/view/WtfyDj
