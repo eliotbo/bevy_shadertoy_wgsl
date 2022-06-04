@@ -24,5 +24,7 @@ var texture: texture_storage_2d<rgba8unorm, read_write>;
 //     textureStore(texture, location, color);
 // }
 
+{{COMMON}}
+
 
 {{CODE_BLOCK}}

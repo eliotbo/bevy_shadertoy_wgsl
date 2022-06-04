@@ -278,7 +278,8 @@ fn setup(
 
     // let example = "minimal";
     // let example = "paint";
-    let example = "mixing_liquid";
+    // let example = "mixing_liquid";
+    let example = "paint_streams";
     // let example = "simplest_detailed_fluid";
     // let example = "interactive_fluid_simulation";
     // let example = "liquid"; https://www.shadertoy.com/view/WtfyDj
@@ -312,6 +313,8 @@ pub fn make_and_load_shaders2(example: &str, asset_server: &Res<AssetServer>) ->
     format_and_save_shader(example, "image");
     format_and_save_shader(example, "buffer_a");
     format_and_save_shader(example, "buffer_b");
+    format_and_save_shader(example, "buffer_c");
+    format_and_save_shader(example, "buffer_d");
 
     let image_shader_handle = asset_server.load(&format!("shaders/{}/image.wgsl", example));
     let texture_a_shader = asset_server.load(&format!("shaders/{}/buffer_a.wgsl", example));
