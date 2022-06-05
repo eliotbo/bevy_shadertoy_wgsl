@@ -6,10 +6,11 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
 
 	let R2 = uni.iResolution.xy;
     let location = vec2<i32>(i32(invocation_id.x), i32(R2.y)  - i32(invocation_id.y));
+	
 	// R = uni.iResolution.xy;
 	// time = uni.iTime;
-    let pos = vec2<f32>(location);
-	let p: vec2<i32> = vec2<i32>(pos);
+    let pos = vec2<f32>(location) ;
+	// let p: vec2<i32> = vec2<i32>(pos);
 
     let data: vec4<f32> =  textureLoad(buffer_a, location);
 
@@ -24,7 +25,7 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
 			let ij: vec2<i32> = vec2<i32>(i, j);
 
 			// let data: vec4<f32> = texel(ch0, pos + ij);
-             let data: vec4<f32> =  textureLoad(buffer_a, location + ij);
+            let data: vec4<f32> =  textureLoad(buffer_a, location + ij);
 
 			var P0: particle = getParticle(data, pos + vec2<f32>(ij));
 			let x0: vec2<f32> = P0.X;

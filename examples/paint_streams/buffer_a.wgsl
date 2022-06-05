@@ -1,6 +1,6 @@
 
 // don't forget to use a return value when using Reintegration
-fn Reintegration(ch: texture_storage_2d<rgba8unorm, read_write>, pos: vec2<f32>) -> particle {
+fn Reintegration(ch: texture_storage_2d<rgba8unorm, read_write>, pos: vec2<f32>, R2: vec2<f32>) -> particle {
 	
     //basically integral over all updated neighbor distributions
     //that fall inside of this pixel
@@ -18,7 +18,7 @@ fn Reintegration(ch: texture_storage_2d<rgba8unorm, read_write>, pos: vec2<f32>)
             P0.X = P0.X + (P0.V * dt);//integrate position
 
             let difR: f32 = 0.9 + 0.21 * smoothStep(fluid_rho * 0., fluid_rho * 0.333, P0.M.x);
-            let D: vec3<f32> = distribution(P0.X, pos, difR);
+            let D: vec3<f32> = distribution(P0.X, pos / R2 , difR);
 
             //the deposited mass into this cell
             let m: f32 = P0.M.x * D.z;
@@ -53,18 +53,9 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
 	let R2 = uni.iResolution.xy;
     let location = vec2<i32>(i32(invocation_id.x), i32(R2.y)  - i32(invocation_id.y));
 
-    let pos: vec2<f32> = vec2<f32>(location);
-
-	
-	// Mouse = uni.iMouse;
-
-
-
+    let pos: vec2<f32> = vec2<f32>(location)  ;
 
 	var P: particle;
-
-	// if (uni.iFrame < 4.0) {
-	// if (Mouse.z > 0.5) {
 		
 	#ifdef INIT
 		let rand: vec3<f32> = hash32(pos);
@@ -81,7 +72,7 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
 		
 		}
 	#else
-		P = Reintegration(buffer_b, pos);
+		P = Reintegration(buffer_b, pos, R2);
 	#endif
 
     textureStore(buffer_a, location, saveParticle(P, pos));

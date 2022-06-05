@@ -128,6 +128,12 @@ fn setup(
             ..default()
         },
         texture: image.clone(),
+        // the y axis of a bevy window is flipped compared to shadertoy. We fix it
+        // by rotating the sprite 180 degrees, but this comes at the cost of a mirrored
+        // image in the x axis.
+        transform: Transform::from_rotation(bevy::math::Quat::from_rotation_z(
+            core::f32::consts::PI,
+        )),
         ..default()
     });
 
@@ -279,7 +285,9 @@ fn setup(
     // let example = "minimal";
     // let example = "paint";
     // let example = "mixing_liquid";
-    let example = "paint_streams";
+    // let example = "paint_streams";
+    // let example = "molecular_dynamics";
+    let example = "dancing_tree";
     // let example = "simplest_detailed_fluid";
     // let example = "interactive_fluid_simulation";
     // let example = "liquid"; https://www.shadertoy.com/view/WtfyDj

@@ -95,12 +95,9 @@ fn Simulation(
 [[stage(compute), workgroup_size(8, 8, 1)]]
 fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
 
-// }
-
-// fn mainImage( U: vec4<f32>,  pos: vec2<f32>) -> () {
-
 	let R2 = uni.iResolution.xy;
-    let location = vec2<i32>(i32(invocation_id.x), i32(R2.y) - i32(invocation_id.y));
+
+	let location = vec2<i32>(i32(invocation_id.x), i32(R2.y)  - i32(invocation_id.y));
 
     let pos: vec2<f32> = vec2<f32>(location);
 

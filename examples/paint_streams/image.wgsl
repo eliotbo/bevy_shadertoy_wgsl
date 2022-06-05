@@ -23,9 +23,10 @@ fn mixN(a: vec3<f32>, b: vec3<f32>, k: f32) -> vec3<f32> {
 
 } 
 
-fn V(p: vec2<f32>) -> vec4<f32> {
+fn V(location: vec2<i32>, R2: vec2<f32>) -> vec4<f32> {
 	// return pixel(ch1, p);
-    return textureLoad(buffer_c, vec2<i32>(p ));
+    // return textureLoad(buffer_c, vec2<i32>(p ));
+	let data: vec4<f32> =  textureLoad(buffer_c, location);
 
 } 
 
@@ -60,7 +61,8 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
 
 	let R2 = uni.iResolution.xy;
 
-	let location = vec2<i32>(i32(invocation_id.x),  i32(invocation_id.y));
+	// let location = vec2<i32>(i32(invocation_id.x),  i32(invocation_id.y));
+	let location = vec2<i32>(i32(invocation_id.x), i32(R2.y)  - i32(invocation_id.y));
 	let time = uni.iTime;
 
 	// let p: vec2<i32> = vec2<i32>(pos);
@@ -68,23 +70,23 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
 
     // let p: vec2<i32> = vec2<i32>(location.x, i32(R2.y) - location.y);
 
-    let data: vec4<f32> =  textureLoad(buffer_a, i32(R2.y) - location);
+    let data: vec4<f32> =  textureLoad(buffer_a, location);
 
-    let pos = vec2<f32>(f32(location.x), R2.y - f32(location.y));
+    let pos = vec2<f32>(location);
 
 	var P: particle = getParticle(data, pos);
 
 	let Nb: vec3<f32> = bN(P.X, R2, time);
 	let bord: f32 = smoothStep(2. * border_h, border_h * 0.5, border(pos, R2, time));
-	let rho: vec4<f32> = V(pos);
-	let dx: vec3<f32> = vec3<f32>(-2., 0., 2.);
+	let rho: vec4<f32> = V(location, R2);
+	let dx: vec3<i32> = vec3<i32>(-2, 0, 2);
 
-	let grad: vec4<f32> = -0.5 * vec4<f32>( V(pos + dx.zy).zw - V(pos + dx.xy).zw, 
-                                            V(pos + dx.yz).zw - V(pos + dx.yx).zw);
+	let grad: vec4<f32> = -0.5 * vec4<f32>( V(location + dx.zy, R2).zw - V(location + dx.xy, R2).zw, 
+                                            V(location + dx.yz, R2).zw - V(location + dx.yx, R2).zw);
 	let N: vec2<f32> = pow(length(grad.xz), 0.2) * normalize(grad.xz + 0.00001);
 
 	let specular: f32 = pow(max(dot(N, Dir(1.4)), 0.), 3.5);
-	let specularb: f32 = G(0.4 * (Nb.zz - border_h)) * pow(max(dot(Nb.xy, Dir(1.4)), 0.), 3.);
+	// let specularb: f32 = G(0.4 * (Nb.zz - border_h)) * pow(max(dot(Nb.xy, Dir(1.4)), 0.), 3.);
 
 
 	let a: f32 = pow(smoothStep(fluid_rho * 0., fluid_rho * 2., rho.z), 0.1);
