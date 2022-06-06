@@ -1,6 +1,6 @@
 
 // don't forget to use a return value when using Reintegration
-fn Reintegration(ch: texture_storage_2d<rgba8unorm, read_write>, pos: vec2<f32>, R2: vec2<f32>) -> particle {
+fn Reintegration(ch: texture_storage_2d<rgba32float, read_write>, pos: vec2<f32>, R2: vec2<f32>) -> particle {
 	
     //basically integral over all updated neighbor distributions
     //that fall inside of this pixel
@@ -51,7 +51,7 @@ fn Reintegration(ch: texture_storage_2d<rgba8unorm, read_write>, pos: vec2<f32>,
 fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
 
 	let R2 = uni.iResolution.xy;
-    let location = vec2<i32>(i32(invocation_id.x), i32(R2.y)  - i32(invocation_id.y));
+    let location = vec2<i32>(i32(invocation_id.x), i32(invocation_id.y));
 
     let pos: vec2<f32> = vec2<f32>(location)  ;
 
@@ -59,7 +59,7 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
 		
 	#ifdef INIT
 		let rand: vec3<f32> = hash32(pos);
-		// let rand = vec3<f32>(0.2, -0.2, -0.2);
+
 		if (rand.z < 0.) {
 			P.X = pos;
 			P.V = 0.5 * (rand.xy - 0.5) + vec2<f32>(0., 0.);

@@ -62,7 +62,7 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
 	#ifdef INIT
 		X = vec2<f32>(pos);
 		V = vec2<f32>(0.);
-		M = Ha(vec2<f32>(pos) - (R * 0.5 - R.x * 0.15)) * Hb(R * 0.5 + R.x * 0.15 - vec2<f32>(pos));
+		M = Ha(vec2<f32>(pos) - (R * 0.5 - R.x * 0.1)) * Hb(R * 0.5 + R.x * 0.1 - vec2<f32>(pos));
 	#endif
 
 	X = X - vec2<f32>(pos);

@@ -47,7 +47,7 @@ impl FromWorld for TextureDPipeline {
                             visibility: ShaderStages::COMPUTE,
                             ty: BindingType::StorageTexture {
                                 access: StorageTextureAccess::ReadWrite,
-                                format: TextureFormat::Rgba8Unorm,
+                                format: TextureFormat::Rgba32Float,
                                 view_dimension: TextureViewDimension::D2,
                             },
                             count: None,
@@ -57,7 +57,7 @@ impl FromWorld for TextureDPipeline {
                             visibility: ShaderStages::COMPUTE,
                             ty: BindingType::StorageTexture {
                                 access: StorageTextureAccess::ReadWrite,
-                                format: TextureFormat::Rgba8Unorm,
+                                format: TextureFormat::Rgba32Float,
                                 view_dimension: TextureViewDimension::D2,
                             },
                             count: None,
@@ -67,7 +67,7 @@ impl FromWorld for TextureDPipeline {
                             visibility: ShaderStages::COMPUTE,
                             ty: BindingType::StorageTexture {
                                 access: StorageTextureAccess::ReadWrite,
-                                format: TextureFormat::Rgba8Unorm,
+                                format: TextureFormat::Rgba32Float,
                                 view_dimension: TextureViewDimension::D2,
                             },
                             count: None,
@@ -77,7 +77,7 @@ impl FromWorld for TextureDPipeline {
                             visibility: ShaderStages::COMPUTE,
                             ty: BindingType::StorageTexture {
                                 access: StorageTextureAccess::ReadWrite,
-                                format: TextureFormat::Rgba8Unorm,
+                                format: TextureFormat::Rgba32Float,
                                 view_dimension: TextureViewDimension::D2,
                             },
                             count: None,

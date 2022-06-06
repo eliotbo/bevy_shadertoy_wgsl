@@ -10,6 +10,8 @@ use bevy::{
 };
 
 use crate::texture_a::*;
+use crate::texture_c::*;
+use crate::texture_d::*;
 
 use std::borrow::Cow;
 
@@ -54,7 +56,7 @@ impl FromWorld for TextureBPipeline {
                         visibility: ShaderStages::COMPUTE,
                         ty: BindingType::StorageTexture {
                             access: StorageTextureAccess::ReadWrite,
-                            format: TextureFormat::Rgba8Unorm,
+                            format: TextureFormat::Rgba32Float,
                             view_dimension: TextureViewDimension::D2,
                         },
                         count: None,
@@ -64,7 +66,27 @@ impl FromWorld for TextureBPipeline {
                         visibility: ShaderStages::COMPUTE,
                         ty: BindingType::StorageTexture {
                             access: StorageTextureAccess::ReadWrite,
-                            format: TextureFormat::Rgba8Unorm,
+                            format: TextureFormat::Rgba32Float,
+                            view_dimension: TextureViewDimension::D2,
+                        },
+                        count: None,
+                    },
+                    BindGroupLayoutEntry {
+                        binding: 3,
+                        visibility: ShaderStages::COMPUTE,
+                        ty: BindingType::StorageTexture {
+                            access: StorageTextureAccess::ReadWrite,
+                            format: TextureFormat::Rgba32Float,
+                            view_dimension: TextureViewDimension::D2,
+                        },
+                        count: None,
+                    },
+                    BindGroupLayoutEntry {
+                        binding: 4,
+                        visibility: ShaderStages::COMPUTE,
+                        ty: BindingType::StorageTexture {
+                            access: StorageTextureAccess::ReadWrite,
+                            format: TextureFormat::Rgba32Float,
                             view_dimension: TextureViewDimension::D2,
                         },
                         count: None,
@@ -86,8 +108,10 @@ pub fn queue_bind_group_b(
     mut commands: Commands,
     pipeline: Res<TextureBPipeline>,
     gpu_images: Res<RenderAssets<Image>>,
-    texture_b: Res<TextureB>,
-    texture_a: Res<TextureA>,
+    texture_a_image: Res<TextureA>,
+    texture_b_image: Res<TextureB>,
+    texture_c_image: Res<TextureC>,
+    texture_d_image: Res<TextureD>,
     render_device: Res<RenderDevice>,
     mut pipeline_cache: ResMut<PipelineCache>,
     all_shader_handles: Res<ShaderHandles>,
@@ -109,8 +133,10 @@ pub fn queue_bind_group_b(
         entry_point: Cow::from("update"),
     });
 
-    let view_a = &gpu_images[&texture_a.0];
-    let view_b = &gpu_images[&texture_b.0];
+    let texture_a_view = &gpu_images[&texture_a_image.0];
+    let texture_b_view = &gpu_images[&texture_b_image.0];
+    let texture_c_view = &gpu_images[&texture_c_image.0];
+    let texture_d_view = &gpu_images[&texture_d_image.0];
 
     let texture_b_bind_group = render_device.create_bind_group(&BindGroupDescriptor {
         label: Some("binding b"),
@@ -122,11 +148,19 @@ pub fn queue_bind_group_b(
             },
             BindGroupEntry {
                 binding: 1,
-                resource: BindingResource::TextureView(&view_a.texture_view),
+                resource: BindingResource::TextureView(&texture_a_view.texture_view),
             },
             BindGroupEntry {
                 binding: 2,
-                resource: BindingResource::TextureView(&view_b.texture_view),
+                resource: BindingResource::TextureView(&texture_b_view.texture_view),
+            },
+            BindGroupEntry {
+                binding: 3,
+                resource: BindingResource::TextureView(&texture_c_view.texture_view),
+            },
+            BindGroupEntry {
+                binding: 4,
+                resource: BindingResource::TextureView(&texture_d_view.texture_view),
             },
         ],
     });

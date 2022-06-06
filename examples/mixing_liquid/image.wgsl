@@ -97,9 +97,9 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
 
 	col = mixN(col, 0. * vec3<f32>(0.5, 0.5, 1.), bord);
 	col = tanh(col);
-    let col4 = vec4<f32>(col, 0.3);
+    let col4 = vec4<f32>(col, 3.0);
 
-    textureStore(texture, location, rho);
+    textureStore(texture, location, col4);
 
 
 } 

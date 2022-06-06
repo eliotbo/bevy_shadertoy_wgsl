@@ -62,7 +62,7 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
 	let R2 = uni.iResolution.xy;
 
 	// let location = vec2<i32>(i32(invocation_id.x),  i32(invocation_id.y));
-	let location = vec2<i32>(i32(invocation_id.x), i32(R2.y)  - i32(invocation_id.y));
+	let location = vec2<i32>(i32(invocation_id.x),  i32(invocation_id.y));
 	let time = uni.iTime;
 
 	// let p: vec2<i32> = vec2<i32>(pos);

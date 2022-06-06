@@ -17,16 +17,16 @@ struct CommonUniform {
 var<uniform> uni: CommonUniform;
 
 [[group(0), binding(1)]]
-var buffer_a: texture_storage_2d<rgba8unorm, read_write>;
+var buffer_a: texture_storage_2d<rgba32float, read_write>;
 
 [[group(0), binding(2)]]
-var buffer_b: texture_storage_2d<rgba8unorm, read_write>;
+var buffer_b: texture_storage_2d<rgba32float, read_write>;
 
 [[group(0), binding(3)]]
-var buffer_c: texture_storage_2d<rgba8unorm, read_write>;
+var buffer_c: texture_storage_2d<rgba32float, read_write>;
 
 [[group(0), binding(4)]]
-var buffer_d: texture_storage_2d<rgba8unorm, read_write>;
+var buffer_d: texture_storage_2d<rgba32float, read_write>;
 
 // #define T(p) texelFetch(iChannel0, ivec2(mod(p,R)), 0)
 
@@ -56,7 +56,7 @@ var buffer_d: texture_storage_2d<rgba8unorm, read_write>;
 
 let PI = 3.14159265;
 
-let dt = 0.5;
+let dt = 0.4;
 
 // let R = uni.iResolution.xy;
 
@@ -67,7 +67,7 @@ fn GS(x1: vec2<f32>) -> f32 {
 }
 
 fn MF(dx: vec2<f32>) -> f32 {
-	return -GS(0.75 * dx) + 0.13 * GS(0.4 * dx);
+	return -GS(0.75 * dx) + 0.15 * GS(0.4 * dx);
 
 } 
 
@@ -109,15 +109,18 @@ fn Hb(x: vec2<f32>) -> f32 {
 } 
 
 fn unpack(X: u32) -> vec2<f32> {
-    return (clamp(vec2<f32>(f32(X % 65535u), f32(X / 65535u)) / 65534.0, vec2<f32>(0.), vec2<f32>(1.)) *2.0 - 1.0) ;
+    return (clamp(
+            vec2<f32>(f32(X % 65535u), f32(X / 65535u)) / 65534.0, 
+            vec2<f32>(0.), 
+            vec2<f32>(1.)
+        ) * 2.0 - 1.0
+    ) ;
 }
 
 fn pack(v: vec2<f32>) -> u32 {
     return  (     u32(round(65534.0*clamp(0.5*v.x+0.5, 0., 1.))) + 
            65535u*u32(round(65534.0*clamp(0.5*v.y+0.5, 0., 1.))) )   ;
 }
-
-
 
 
 
@@ -158,10 +161,11 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
     let location = vec2<i32>(i32(invocation_id.x), i32(invocation_id.y));
     let pos = location;
 
-	let uv: vec2<f32> = vec2<f32>(pos) / R;
+
 	let p: vec2<i32> = vec2<i32>(pos);
 
     let data: vec4<f32> = textureLoad(buffer_a, pos % vec2<i32>( R));
+	// let data: vec4<f32> = textureLoad(buffer_a, pos );
 
 
 	// var X: vec2<f32> = DECODE(data.x) + pos;
@@ -180,6 +184,7 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
 				// let data: vec4<f32> = T(tpos);
 
                 let data: vec4<f32> = textureLoad(buffer_a, (tpos % vec2<i32>( R)));
+				// let data: vec4<f32> = textureLoad(buffer_a, (tpos ));
 
                 //  texelFetch(iChannel0, ivec2(mod(p,R)), 0)
 
@@ -194,30 +199,32 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
 
 				Fa = Fa + (M0 * MF(dx) * dx);
 			
-			}			
+			}	
+		}		
             
-            var F: vec2<f32> = vec2<f32>(0.);
-			if (uni.iMouse.z > 0.) {
-				let dx: vec2<f32> = vec2<f32>(pos) - uni.iMouse.xy;
-				F = F - (0.003 * dx * GS(dx / 30.));
-			}
+		var F: vec2<f32> = vec2<f32>(0.);
+		if (uni.iMouse.z > 0.) {
+			let dx: vec2<f32> = vec2<f32>(pos) - uni.iMouse.xy;
+			F = F - (0.003 * dx * GS(dx / 30.));
+		}
 
-			F = F + (0.001 * vec2<f32>(0., -1.0));
+		F = F + (0.001 * vec2<f32>(0., -1.0));
 
-			V = V + ((F + Fa) * dt / M);
-			X = X + (cooling * Fa * dt / M);
-			let BORD: vec3<f32> = bN(X, R);
-			V = V + (0.5 * smoothStep(0., 5., -BORD.z) * BORD.xy);
-			let v: f32 = length(V);
+		V = V + ((F + Fa) * dt / M);
+		X = X + (cooling * Fa * dt / M);
+		let BORD: vec3<f32> = bN(X, R);
 
-            var denom: f32 = 1.0;
-            if (v > 1.) {
-                denom = 1. * v;
-            } 
-            V = V / denom;
-			// V = V / (v > 1. ? 1. * v : 1.);
+		V = V + (0.5 * smoothStep(0., 5., -BORD.z) * BORD.xy);
+		let v: f32 = length(V);
+
+		var denom: f32 = 1.0;
+		if (v > 1.) {
+			denom = 1. * v;
+		} 
+		V = V / denom;
+		// V = V / (v > 1. ? 1. * v : 1.);
 		
-		}	
+			
 	}
 	X = X - vec2<f32>(pos);
 	// U = vec4<f32>(ENCODE(X), ENCODE(V), M, 0.);

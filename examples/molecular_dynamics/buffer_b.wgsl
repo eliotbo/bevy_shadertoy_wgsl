@@ -1,5 +1,3 @@
-
-
 fn sdBox( p: vec2<f32>,  b: vec2<f32>) -> f32 {
 	let d: vec2<f32> = abs(p) - b;
 	return length(max(d, vec2<f32>(0.))) + min(max(d.x, d.y), 0.);
@@ -37,10 +35,11 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
     let location = vec2<i32>(i32(invocation_id.x), i32(invocation_id.y));
     let pos = location;
 
-	let uv: vec2<f32> = vec2<f32>(pos) / R;
+
 	let p: vec2<i32> = vec2<i32>(pos);
 
     let data: vec4<f32> = textureLoad(buffer_a, pos % vec2<i32>( R));
+	// let data: vec4<f32> = textureLoad(buffer_a, pos );
 
 
 	// var X: vec2<f32> = DECODE(data.x) + pos;
@@ -59,6 +58,7 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
 				// let data: vec4<f32> = T(tpos);
 
                 let data: vec4<f32> = textureLoad(buffer_a, (tpos % vec2<i32>( R)));
+				// let data: vec4<f32> = textureLoad(buffer_a, (tpos ));
 
                 //  texelFetch(iChannel0, ivec2(mod(p,R)), 0)
 
@@ -73,30 +73,32 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
 
 				Fa = Fa + (M0 * MF(dx) * dx);
 			
-			}			
+			}	
+		}		
             
-            var F: vec2<f32> = vec2<f32>(0.);
-			if (uni.iMouse.z > 0.) {
-				let dx: vec2<f32> = vec2<f32>(pos) - uni.iMouse.xy;
-				F = F - (0.003 * dx * GS(dx / 30.));
-			}
+		var F: vec2<f32> = vec2<f32>(0.);
+		if (uni.iMouse.z > 0.) {
+			let dx: vec2<f32> = vec2<f32>(pos) - uni.iMouse.xy;
+			F = F - (0.003 * dx * GS(dx / 30.));
+		}
 
-			F = F + (0.001 * vec2<f32>(0., -1.0));
+		F = F + (0.001 * vec2<f32>(0., -1.0));
 
-			V = V + ((F + Fa) * dt / M);
-			X = X + (cooling * Fa * dt / M);
-			let BORD: vec3<f32> = bN(X, R);
-			V = V + (0.5 * smoothStep(0., 5., -BORD.z) * BORD.xy);
-			let v: f32 = length(V);
+		V = V + ((F + Fa) * dt / M);
+		X = X + (cooling * Fa * dt / M);
+		let BORD: vec3<f32> = bN(X, R);
 
-            var denom: f32 = 1.0;
-            if (v > 1.) {
-                denom = 1. * v;
-            } 
-            V = V / denom;
-			// V = V / (v > 1. ? 1. * v : 1.);
+		V = V + (0.5 * smoothStep(0., 5., -BORD.z) * BORD.xy);
+		let v: f32 = length(V);
+
+		var denom: f32 = 1.0;
+		if (v > 1.) {
+			denom = 1. * v;
+		} 
+		V = V / denom;
+		// V = V / (v > 1. ? 1. * v : 1.);
 		
-		}	
+			
 	}
 	X = X - vec2<f32>(pos);
 	// U = vec4<f32>(ENCODE(X), ENCODE(V), M, 0.);

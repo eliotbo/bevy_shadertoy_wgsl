@@ -31,9 +31,6 @@ var buffer_d: texture_storage_2d<rgba8unorm, read_write>;
 
 
 
-type float2 = vec2<f32>;
-type float4 = vec4<f32>;
-
 fn hue(v: f32) -> vec4<f32> { 
     return (vec4<f32>(.6) + vec4<f32>(.6) * cos( vec4<f32>(6.3 * v) + vec4<f32>(0.0,23.0,21.0,0.0 ) ));
 }
@@ -133,12 +130,14 @@ fn sdCircle(p: vec2<f32>, c: vec2<f32>, r: f32) -> f32 {
 
 [[stage(compute), workgroup_size(8, 8, 1)]]
 fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
+    let R: vec2<f32> = uni.iResolution.xy;
+    // let location = vec2<i32>(i32(invocation_id.x), i32(invocation_id.y));
     let location = vec2<i32>(i32(invocation_id.x), i32(invocation_id.y));
 
     // the first three frames are not directed inside the update function.
     // The first time this function is called is on frame 4.
-    if (i32(uni.iFrame) == 3) { 
-    // # ifdef INIT
+    // if (i32(uni.iFrame) == 3) { 
+    # ifdef INIT
         if (location.x == 0 && location.y == 0 )  {
             textureStore(buffer_a, location, hue(4.0 / 8.0));
         } else {
@@ -146,14 +145,14 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
             let black = vec4<f32>(0.0, 0.0, 0.0, 1.0);
             textureStore(buffer_a, location, black);
         }
-    // # endif
-    }
+    # endif
+    // }
 
-    let R: float2 = uni.iResolution.xy;
+    
     let U: vec2<f32> = vec2<f32>(location) / R;
-    let M: float2 = vec2<f32>(uni.iMouse.x, 1.0-uni.iMouse.y);
+    let M: vec2<f32> = vec2<f32>(uni.iMouse.x, 1.0-uni.iMouse.y);
 
-    var O: float4 =  textureLoad(buffer_a, location);
+    var O: vec4<f32> =  textureLoad(buffer_a, location);
 
     if (location.x == 0 && location.y == 0 )  {
         if ( uni.iMouse.x < 0.1 && uni.iMouse.w == 1.0) { // just pressed left mouse button
@@ -173,7 +172,7 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
         return;
     }
 
-    // let brush_color = float4(1., 0., 0., 1.);
+    // let brush_color = vec4<f32>(1., 0., 0., 1.);
     let brush_color = textureLoad(buffer_a, vec2<i32>(0,0));
 
     // apply paint

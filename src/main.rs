@@ -83,7 +83,7 @@ fn main() {
     // app.insert_resource(wgpu_options)
     app.insert_resource(ClearColor(Color::BLACK))
         .insert_resource(WindowDescriptor {
-            present_mode: PresentMode::Immediate, // uncomment for unthrottled FPS
+            // present_mode: PresentMode::Immediate, // uncomment for unthrottled FPS
             ..default()
         })
         .add_plugins(DefaultPlugins)
@@ -113,7 +113,7 @@ fn setup(
         },
         TextureDimension::D2,
         &[0, 0, 0, 0],
-        TextureFormat::Rgba8Unorm,
+        TextureFormat::Rgba32Float,
     );
     image.texture_descriptor.usage =
         TextureUsages::COPY_DST | TextureUsages::STORAGE_BINDING | TextureUsages::TEXTURE_BINDING;
@@ -128,12 +128,12 @@ fn setup(
             ..default()
         },
         texture: image.clone(),
-        // the y axis of a bevy window is flipped compared to shadertoy. We fix it
-        // by rotating the sprite 180 degrees, but this comes at the cost of a mirrored
-        // image in the x axis.
-        transform: Transform::from_rotation(bevy::math::Quat::from_rotation_z(
-            core::f32::consts::PI,
-        )),
+        // // the y axis of a bevy window is flipped compared to shadertoy. We fix it
+        // // by rotating the sprite 180 degrees, but this comes at the cost of a mirrored
+        // // image in the x axis.
+        // transform: Transform::from_rotation(bevy::math::Quat::from_rotation_z(
+        //     core::f32::consts::PI,
+        // )),
         ..default()
     });
 
@@ -157,7 +157,7 @@ fn setup(
         TextureDimension::D2,
         // &[255, 255, 255, 255],
         &[0, 0, 0, 0],
-        TextureFormat::Rgba8Unorm,
+        TextureFormat::Rgba32Float,
     );
     texture_a.texture_descriptor.usage =
         TextureUsages::COPY_DST | TextureUsages::STORAGE_BINDING | TextureUsages::TEXTURE_BINDING;
@@ -179,7 +179,7 @@ fn setup(
         TextureDimension::D2,
         // &[255, 255, 255, 255],
         &[0, 0, 0, 0],
-        TextureFormat::Rgba8Unorm,
+        TextureFormat::Rgba32Float,
     );
     texture_b.texture_descriptor.usage =
         TextureUsages::COPY_DST | TextureUsages::STORAGE_BINDING | TextureUsages::TEXTURE_BINDING;
@@ -201,7 +201,7 @@ fn setup(
         TextureDimension::D2,
         // &[255, 255, 255, 255],
         &[0, 0, 0, 0],
-        TextureFormat::Rgba8Unorm,
+        TextureFormat::Rgba32Float,
     );
     texture_c.texture_descriptor.usage =
         TextureUsages::COPY_DST | TextureUsages::STORAGE_BINDING | TextureUsages::TEXTURE_BINDING;
@@ -223,7 +223,7 @@ fn setup(
         TextureDimension::D2,
         // &[255, 255, 255, 255],
         &[0, 0, 0, 0],
-        TextureFormat::Rgba8Unorm,
+        TextureFormat::Rgba32Float,
     );
     texture_d.texture_descriptor.usage =
         TextureUsages::COPY_DST | TextureUsages::STORAGE_BINDING | TextureUsages::TEXTURE_BINDING;
@@ -286,8 +286,9 @@ fn setup(
     // let example = "paint";
     // let example = "mixing_liquid";
     // let example = "paint_streams";
-    // let example = "molecular_dynamics";
-    let example = "dancing_tree";
+    let example = "molecular_dynamics";
+    // let example = "love_and_domination";
+    // let example = "dancing_tree";
     // let example = "simplest_detailed_fluid";
     // let example = "interactive_fluid_simulation";
     // let example = "liquid"; https://www.shadertoy.com/view/WtfyDj
@@ -570,7 +571,7 @@ impl FromWorld for MainImagePipeline {
                             visibility: ShaderStages::COMPUTE,
                             ty: BindingType::StorageTexture {
                                 access: StorageTextureAccess::ReadWrite,
-                                format: TextureFormat::Rgba8Unorm,
+                                format: TextureFormat::Rgba32Float,
                                 view_dimension: TextureViewDimension::D2,
                             },
                             count: None,
@@ -580,7 +581,7 @@ impl FromWorld for MainImagePipeline {
                             visibility: ShaderStages::COMPUTE,
                             ty: BindingType::StorageTexture {
                                 access: StorageTextureAccess::ReadWrite,
-                                format: TextureFormat::Rgba8Unorm,
+                                format: TextureFormat::Rgba32Float,
                                 view_dimension: TextureViewDimension::D2,
                             },
                             count: None,
@@ -590,7 +591,7 @@ impl FromWorld for MainImagePipeline {
                             visibility: ShaderStages::COMPUTE,
                             ty: BindingType::StorageTexture {
                                 access: StorageTextureAccess::ReadWrite,
-                                format: TextureFormat::Rgba8Unorm,
+                                format: TextureFormat::Rgba32Float,
                                 view_dimension: TextureViewDimension::D2,
                             },
                             count: None,
@@ -600,7 +601,7 @@ impl FromWorld for MainImagePipeline {
                             visibility: ShaderStages::COMPUTE,
                             ty: BindingType::StorageTexture {
                                 access: StorageTextureAccess::ReadWrite,
-                                format: TextureFormat::Rgba8Unorm,
+                                format: TextureFormat::Rgba32Float,
                                 view_dimension: TextureViewDimension::D2,
                             },
                             count: None,
@@ -610,7 +611,7 @@ impl FromWorld for MainImagePipeline {
                             visibility: ShaderStages::COMPUTE,
                             ty: BindingType::StorageTexture {
                                 access: StorageTextureAccess::ReadWrite,
-                                format: TextureFormat::Rgba8Unorm,
+                                format: TextureFormat::Rgba32Float,
                                 view_dimension: TextureViewDimension::D2,
                             },
                             count: None,

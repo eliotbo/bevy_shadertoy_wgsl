@@ -17,19 +17,19 @@ struct CommonUniform {
 var<uniform> uni: CommonUniform;
 
 [[group(0), binding(1)]]
-var buffer_a: texture_storage_2d<rgba8unorm, read_write>;
+var buffer_a: texture_storage_2d<rgba32float, read_write>;
 
 [[group(0), binding(2)]]
-var buffer_b: texture_storage_2d<rgba8unorm, read_write>;
+var buffer_b: texture_storage_2d<rgba32float, read_write>;
 
 [[group(0), binding(3)]]
-var buffer_c: texture_storage_2d<rgba8unorm, read_write>;
+var buffer_c: texture_storage_2d<rgba32float, read_write>;
 
 [[group(0), binding(4)]]
-var buffer_d: texture_storage_2d<rgba8unorm, read_write>;
+var buffer_d: texture_storage_2d<rgba32float, read_write>;
 
 [[group(0), binding(5)]]
-var texture: texture_storage_2d<rgba8unorm, read_write>;
+var texture: texture_storage_2d<rgba32float, read_write>;
 
 // [[stage(compute), workgroup_size(8, 8, 1)]]
 // fn init([[builtin(global_invocation_id)]] invocation_id: vec3<u32>, [[builtin(num_workgroups)]] num_workgroups: vec3<u32>) {
@@ -68,7 +68,7 @@ var texture: texture_storage_2d<rgba8unorm, read_write>;
 
 let PI = 3.14159265;
 
-let dt = 0.5;
+let dt = 0.4;
 
 // let R = uni.iResolution.xy;
 
@@ -79,7 +79,7 @@ fn GS(x1: vec2<f32>) -> f32 {
 }
 
 fn MF(dx: vec2<f32>) -> f32 {
-	return -GS(0.75 * dx) + 0.13 * GS(0.4 * dx);
+	return -GS(0.75 * dx) + 0.15 * GS(0.4 * dx);
 
 } 
 
@@ -121,7 +121,12 @@ fn Hb(x: vec2<f32>) -> f32 {
 } 
 
 fn unpack(X: u32) -> vec2<f32> {
-    return (clamp(vec2<f32>(f32(X % 65535u), f32(X / 65535u)) / 65534.0, vec2<f32>(0.), vec2<f32>(1.)) *2.0 - 1.0) ;
+    return (clamp(
+            vec2<f32>(f32(X % 65535u), f32(X / 65535u)) / 65534.0, 
+            vec2<f32>(0.), 
+            vec2<f32>(1.)
+        ) * 2.0 - 1.0
+    ) ;
 }
 
 fn pack(v: vec2<f32>) -> u32 {

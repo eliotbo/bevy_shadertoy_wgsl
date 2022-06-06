@@ -18,7 +18,7 @@ fn bN(p: vec2<f32>, R2: vec2<f32>, time: f32) -> vec3<f32> {
 } 
 
 fn Simulation(
-	ch: texture_storage_2d<rgba8unorm, read_write>, 
+	ch: texture_storage_2d<rgba32float, read_write>, 
 	P: particle, pos: vec2<f32>,  
 	R2: vec2<f32>, 
 	time: f32,
@@ -97,7 +97,7 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
 
 	let R2 = uni.iResolution.xy;
 
-	let location = vec2<i32>(i32(invocation_id.x), i32(R2.y)  - i32(invocation_id.y));
+	let location = vec2<i32>(i32(invocation_id.x),  i32(invocation_id.y));
 
     let pos: vec2<f32> = vec2<f32>(location);
 

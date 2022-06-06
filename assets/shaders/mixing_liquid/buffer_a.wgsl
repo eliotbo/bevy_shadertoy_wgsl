@@ -17,16 +17,16 @@ struct CommonUniform {
 var<uniform> uni: CommonUniform;
 
 [[group(0), binding(1)]]
-var buffer_a: texture_storage_2d<rgba8unorm, read_write>;
+var buffer_a: texture_storage_2d<rgba32float, read_write>;
 
 [[group(0), binding(2)]]
-var buffer_b: texture_storage_2d<rgba8unorm, read_write>;
+var buffer_b: texture_storage_2d<rgba32float, read_write>;
 
 [[group(0), binding(3)]]
-var buffer_c: texture_storage_2d<rgba8unorm, read_write>;
+var buffer_c: texture_storage_2d<rgba32float, read_write>;
 
 [[group(0), binding(4)]]
-var buffer_d: texture_storage_2d<rgba8unorm, read_write>;
+var buffer_d: texture_storage_2d<rgba32float, read_write>;
 
 
 
@@ -51,13 +51,13 @@ var buffer_d: texture_storage_2d<rgba8unorm, read_write>;
 //     return out;
 // }
 
-// let ch0: texture_storage_2d<rgba8unorm, read_write> = buffer_a;
+// let ch0: texture_storage_2d<rgba32float, read_write> = buffer_a;
 
-// let ch1: texture_storage_2d<rgba8unorm, read_write> = buffer_a;
+// let ch1: texture_storage_2d<rgba32float, read_write> = buffer_a;
 
-// let ch2: texture_storage_2d<rgba8unorm, read_write> = buffer_a;
+// let ch2: texture_storage_2d<rgba32float, read_write> = buffer_a;
 
-// let ch3: texture_storage_2d<rgba8unorm, read_write> = buffer_a;
+// let ch3: texture_storage_2d<rgba32float, read_write> = buffer_a;
 
 // #define Bf(p) p
 // #define Bi(p) ivec2(p)
@@ -126,25 +126,21 @@ fn bN(p: vec2<f32>) -> vec3<f32> {
 fn pack(x: vec2<f32>) -> u32 {
 	let x2: vec2<f32> = 65534. * clamp(0.5 * x + 0.5, vec2<f32>(0.), vec2<f32>(1.));
 	return u32(round(x.x)) + 65535u * u32(round(x.y));
-
 } 
 
 fn unpack(a: u32) -> vec2<f32> {
 	var x: vec2<f32> = vec2<f32>(f32(a % 65535u), f32(a / 65535u));
 	return clamp(x / 65534., vec2<f32>(0.), vec2<f32>(1.)) * 2. - 1.;
-
 } 
 
 fn decode(x: f32) -> vec2<f32> {
 	var X: u32 = u32(x);
 	return unpack(X);
-
 } 
 
 fn encode(x: vec2<f32>) -> f32 {
 	var X: u32 = pack(x);
 	return f32(X);
-
 } 
 
 struct particle {
@@ -153,36 +149,29 @@ struct particle {
 	M: vec2<f32>;
 };
 
-
-
 fn getParticle(data: vec4<f32>, pos: vec2<f32>) -> particle {
     var P: particle = particle(decode(data.x) + pos, decode(data.y), data.zw);
 	return P;
-
 } 
 
 fn saveParticle(P: particle, pos: vec2<f32>) -> vec4<f32> {
     var P2: particle = particle(P.X, P.V, P.M);
 	P2.X = clamp(P2.X - pos, vec2<f32>(-0.5), vec2<f32>(0.5));
 	return vec4<f32>(encode(P2.X), encode(P2.V), P2.M);
-
 } 
 
 fn hash32(p: vec2<f32>) -> vec3<f32> {
 	var p3: vec3<f32> = fract(vec3<f32>(p.xyx) * vec3<f32>(.1031, .1030, .0973));
 	p3 = p3 + (dot(p3, p3.yxz + 33.33));
 	return fract((p3.xxy + p3.yzz) * p3.zyx);
-
 } 
 
 fn G(x: vec2<f32>) -> f32 {
 	return exp(-dot(x, x));
-
 } 
 
 fn G0(x: vec2<f32>) -> f32 {
 	return exp(-length(x));
-
 } 
 
 let dif: f32 = 1.12;
@@ -191,12 +180,11 @@ fn distribution(x: vec2<f32>, p: vec2<f32>, K: f32) -> vec3<f32> {
 	let omin: vec2<f32> = clamp(x - K * 0.5, p - 0.5, p + 0.5);
 	let omax: vec2<f32> = clamp(x + K * 0.5, p - 0.5, p + 0.5);
 	return vec3<f32>(0.5 * (omin + omax), (omax.x - omin.x) * (omax.y - omin.y) / (K * K));
-
 } 
 
 
 // don't forget to use a return value when using Reintegration
-fn Reintegration(ch: texture_storage_2d<rgba8unorm, read_write>, pos: vec2<f32>) -> particle {
+fn Reintegration(ch: texture_storage_2d<rgba32float, read_write>, pos: vec2<f32>) -> particle {
 	
     //basically integral over all updated neighbor distributions
     //that fall inside of this pixel
@@ -242,7 +230,7 @@ fn Reintegration(ch: texture_storage_2d<rgba8unorm, read_write>, pos: vec2<f32>)
     return P1;
 } 
 
-fn Simulation(ch: texture_storage_2d<rgba8unorm, read_write>, P: particle, pos: vec2<f32>) -> particle {
+fn Simulation(ch: texture_storage_2d<rgba32float, read_write>, P: particle, pos: vec2<f32>) -> particle {
 	var F: vec2<f32> = vec2<f32>(0.);
 	var avgV: vec3<f32> = vec3<f32>(0.);
 	for (var i: i32 = -2; i <= 2; i = i + 1) {	
@@ -331,11 +319,12 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
 
     // buffer_b is set as the channel 0 in Buffer A of the paint
     // streams inside shadertoy 
-    let data: vec4<f32> =  textureLoad(buffer_b, location);
+    // let data: vec4<f32> =  textureLoad(buffer_b, location);
 
 	var P: particle = Reintegration(buffer_b, pos);
 
-	if (uni.iFrame < 4.0) {
+	// if (uni.iFrame < 4.0) {
+    # ifdef INIT 
 		let rand: vec3<f32> = hash32(pos);
 		if (rand.z < 0.) {
 			P.X = pos;
@@ -348,7 +337,8 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
 			P.M = vec2<f32>(0.000001);
 		
 		}
-	}
+    # endif
+	// }
 
     textureStore(buffer_a, location, saveParticle(P, pos));
 } 

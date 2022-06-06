@@ -20,7 +20,7 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
 
     // buffer_b is set as the channel 0 in Buffer A of the paint
     // streams inside shadertoy 
-    let data: vec4<f32> =  textureLoad(buffer_b, location);
+    // let data: vec4<f32> =  textureLoad(buffer_b, location);
 
 	var P: particle = Reintegration(buffer_b, pos);
 

@@ -17,16 +17,16 @@ struct CommonUniform {
 var<uniform> uni: CommonUniform;
 
 [[group(0), binding(1)]]
-var buffer_a: texture_storage_2d<rgba8unorm, read_write>;
+var buffer_a: texture_storage_2d<rgba32float, read_write>;
 
 [[group(0), binding(2)]]
-var buffer_b: texture_storage_2d<rgba8unorm, read_write>;
+var buffer_b: texture_storage_2d<rgba32float, read_write>;
 
 [[group(0), binding(3)]]
-var buffer_c: texture_storage_2d<rgba8unorm, read_write>;
+var buffer_c: texture_storage_2d<rgba32float, read_write>;
 
 [[group(0), binding(4)]]
-var buffer_d: texture_storage_2d<rgba8unorm, read_write>;
+var buffer_d: texture_storage_2d<rgba32float, read_write>;
 
 let PI = 3.14159265;
 let dt = 1.5;
@@ -136,7 +136,7 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
 	// let R = uni.iResolution.xy;
 
 	let R2 = uni.iResolution.xy;
-    let location = vec2<i32>(i32(invocation_id.x), i32(R2.y)  - i32(invocation_id.y));
+    let location = vec2<i32>(i32(invocation_id.x),  i32(invocation_id.y));
 	
 	// R = uni.iResolution.xy;
 	// time = uni.iTime;
