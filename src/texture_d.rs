@@ -11,7 +11,7 @@ use bevy::{
 use std::borrow::Cow;
 
 use crate::{
-    CommonUniform, CommonUniformMeta, ShaderHandles, ShadertoyState, SIZE, WORKGROUP_SIZE,
+    CanvasSize, CommonUniform, CommonUniformMeta, ShaderHandles, ShadertoyState, WORKGROUP_SIZE,
 };
 
 use crate::texture_a::TextureA;
@@ -234,6 +234,7 @@ impl render_graph::Node for TextureDNode {
         world: &World,
     ) -> Result<(), render_graph::NodeRunError> {
         let bind_group = world.resource::<TextureDBindGroup>();
+        let canvas_size = world.resource::<CanvasSize>();
 
         // let texture_a_bind_group = &bind_group.texture_a_bind_group;
         // let texture_b_bind_group = &bind_group.texture_b_bind_group;
@@ -263,7 +264,11 @@ impl render_graph::Node for TextureDNode {
                     .get_compute_pipeline(init_pipeline_cache)
                     .unwrap();
                 pass.set_pipeline(init_pipeline);
-                pass.dispatch(SIZE.0 / WORKGROUP_SIZE, SIZE.1 / WORKGROUP_SIZE, 1);
+                pass.dispatch(
+                    canvas_size.width / WORKGROUP_SIZE,
+                    canvas_size.height / WORKGROUP_SIZE,
+                    1,
+                );
             }
 
             ShadertoyState::Update => {
@@ -271,7 +276,11 @@ impl render_graph::Node for TextureDNode {
                     .get_compute_pipeline(update_pipeline_cache)
                     .unwrap();
                 pass.set_pipeline(update_pipeline);
-                pass.dispatch(SIZE.0 / WORKGROUP_SIZE, SIZE.1 / WORKGROUP_SIZE, 1);
+                pass.dispatch(
+                    canvas_size.width / WORKGROUP_SIZE,
+                    canvas_size.height / WORKGROUP_SIZE,
+                    1,
+                );
             }
         }
 

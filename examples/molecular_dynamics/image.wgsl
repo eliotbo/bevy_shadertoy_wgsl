@@ -40,6 +40,8 @@ let zoom = 0.3;
 [[stage(compute), workgroup_size(8, 8, 1)]]
 fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
     let R = uni.iResolution.xy;
+    // let location = vec2<i32>(i32(invocation_id.x), i32(invocation_id.y));
+    let y_inverted_location = vec2<i32>(i32(invocation_id.x), i32(R.y) - i32(invocation_id.y));
     let location = vec2<i32>(i32(invocation_id.x), i32(invocation_id.y));
     let pos = location;
 
@@ -83,7 +85,7 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
 	let col: vec3<f32> = cos(0.9 * vec3<f32>(3., 2., 1.) * rho) + 0. * vc;
     let U = vec4<f32>(col, 1.);
 
-    textureStore(texture, location, U);
+    textureStore(texture, y_inverted_location, U);
 
 } 
 

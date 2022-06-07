@@ -187,7 +187,8 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
     let pos: vec2<f32> = vec2<f32>(location)  ;
 
 	var P: particle;
-		
+    
+	P = Reintegration(buffer_b, pos, R2);
 	#ifdef INIT
 		let rand: vec3<f32> = hash32(pos);
 
@@ -202,8 +203,8 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
 			P.M = vec2<f32>(0.000001);
 		
 		}
-	#else
-		P = Reintegration(buffer_b, pos, R2);
+	// #else
+		
 	#endif
 
     textureStore(buffer_a, location, saveParticle(P, pos));

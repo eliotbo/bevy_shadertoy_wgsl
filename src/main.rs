@@ -30,9 +30,10 @@ use texture_c::*;
 mod texture_d;
 use texture_d::{extract_texture_d, queue_bind_group_d, TextureD, TextureDNode, TextureDPipeline};
 
-pub const SIZE: (u32, u32) = (1280, 720);
+// pub const SIZE: (u32, u32) = (1280, 720);
 pub const WORKGROUP_SIZE: u32 = 8;
 pub const NUM_PARTICLES: u32 = 256;
+pub const BORDERS: f32 = 0.9;
 
 // const COMMON: &'static str = include_str!("common.wgsl");
 
@@ -71,6 +72,12 @@ pub const NUM_PARTICLES: u32 = 256;
 //     193535259211504032,
 // );
 
+#[derive(Clone, Debug)]
+pub struct CanvasSize {
+    pub width: u32,
+    pub height: u32,
+}
+
 fn main() {
     // // not sure this works on wasm
     // let mut wgpu_options = WgpuLimits::default();
@@ -83,8 +90,14 @@ fn main() {
     // app.insert_resource(wgpu_options)
     app.insert_resource(ClearColor(Color::BLACK))
         .insert_resource(WindowDescriptor {
+            width: 1280.,
+            height: 780.,
             // present_mode: PresentMode::Immediate, // uncomment for unthrottled FPS
             ..default()
+        })
+        .insert_resource(CanvasSize {
+            width: (1280.0_f32 * BORDERS).floor() as u32,
+            height: (780.0_f32 * BORDERS).floor() as u32,
         })
         .add_plugins(DefaultPlugins)
         .add_system(bevy::input::system::exit_on_esc_system)
@@ -99,6 +112,7 @@ fn main() {
 fn setup(
     mut commands: Commands,
     mut images: ResMut<Assets<Image>>,
+    canvas_size: Res<CanvasSize>,
     // mut shaders: ResMut<Assets<Shader>>,
     asset_server: Res<AssetServer>,
     windows: Res<Windows>,
@@ -107,8 +121,8 @@ fn setup(
 
     let mut image = Image::new_fill(
         Extent3d {
-            width: SIZE.0,
-            height: SIZE.1,
+            width: canvas_size.width,
+            height: canvas_size.height,
             depth_or_array_layers: 1,
         },
         TextureDimension::D2,
@@ -124,7 +138,10 @@ fn setup(
 
     commands.spawn_bundle(SpriteBundle {
         sprite: Sprite {
-            custom_size: Some(Vec2::new(SIZE.0 as f32, SIZE.1 as f32)),
+            custom_size: Some(Vec2::new(
+                canvas_size.width as f32,
+                canvas_size.height as f32,
+            )),
             ..default()
         },
         texture: image.clone(),
@@ -134,6 +151,7 @@ fn setup(
         // transform: Transform::from_rotation(bevy::math::Quat::from_rotation_z(
         //     core::f32::consts::PI,
         // )),
+        transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
         ..default()
     });
 
@@ -150,8 +168,8 @@ fn setup(
     // Texture A: equivalent of Buffer A in Shadertoy
     let mut texture_a = Image::new_fill(
         Extent3d {
-            width: SIZE.0,
-            height: SIZE.1,
+            width: canvas_size.width,
+            height: canvas_size.height,
             depth_or_array_layers: 1,
         },
         TextureDimension::D2,
@@ -172,8 +190,8 @@ fn setup(
     // Texture B: equivalent of Buffer B in Shadertoy
     let mut texture_b = Image::new_fill(
         Extent3d {
-            width: SIZE.0,
-            height: SIZE.1,
+            width: canvas_size.width,
+            height: canvas_size.height,
             depth_or_array_layers: 1,
         },
         TextureDimension::D2,
@@ -194,8 +212,8 @@ fn setup(
     // Texture C: equivalent of Buffer C in Shadertoy
     let mut texture_c = Image::new_fill(
         Extent3d {
-            width: SIZE.0,
-            height: SIZE.1,
+            width: canvas_size.width,
+            height: canvas_size.height,
             depth_or_array_layers: 1,
         },
         TextureDimension::D2,
@@ -216,8 +234,8 @@ fn setup(
     // Texture D: equivalent of Buffer D in Shadertoy
     let mut texture_d = Image::new_fill(
         Extent3d {
-            width: SIZE.0,
-            height: SIZE.1,
+            width: canvas_size.width,
+            height: canvas_size.height,
             depth_or_array_layers: 1,
         },
         TextureDimension::D2,
@@ -420,29 +438,128 @@ pub struct CommonUniformMeta {
     buffer: Buffer,
 }
 
+fn make_new_texture(
+    old_buffer_length: i32,
+    canvas_size: &CanvasSize,
+    image_handle: &Handle<Image>,
+    images: &mut ResMut<Assets<Image>>,
+) {
+    if let Some(mut image) = images.get_mut(image_handle) {
+        // There is no easy way to get the data from the gpu to the cpu, so when we
+        // resize the image, we lose all the data. There might be a way to get the
+        // data soon though.
+
+        // let new_buffer_length = canvas_size.width as i32 * canvas_size.height as i32;
+
+        // let delta_buffer = new_buffer_length - old_buffer_length;
+
+        // let mut new_buffer = image.data.clone();
+
+        // println!(
+        //     "old_buffer_length: {} vs dimensions: {}",
+        //     old_buffer_length, new_buffer_length
+        // );
+
+        // if delta_buffer >= 0 {
+        //     new_buffer.append(&mut vec![0; delta_buffer as usize]);
+        // } else {
+        //     new_buffer.truncate(124416000 as usize);
+        // }
+
+        // let mut new_image = Image::new(
+        //     Extent3d {
+        //         width: canvas_size.width,
+        //         height: canvas_size.height,
+        //         depth_or_array_layers: 1,
+        //     },
+        //     TextureDimension::D2,
+        //     // image.data.clone(),
+        //     new_buffer,
+        //     // &[0, 0, 0, 0],
+        //     TextureFormat::Rgba32Float,
+        // );
+
+        println!("size : {:?}", image.size());
+        let old_data = image.data.clone();
+
+        image.resize(Extent3d {
+            width: canvas_size.width,
+            height: canvas_size.height,
+            depth_or_array_layers: 1,
+        });
+
+        // let old_data_length = old_data.len();
+
+        // let new_data_length = image.data.len();
+
+        // if old_data_length > new_data_length {
+        //     image.data = old_data[0..new_data_length].to_vec();
+        // } else {
+        //     for i in 0..old_buffer_length {
+        //         image.data[i as usize] = old_data[i as usize];
+        //     }
+        // }
+    }
+}
+
 // TODO: update date, channel time, channe l_resolution, sample_rate
 fn update_common_uniform(
     mut common_uniform: ResMut<CommonUniform>,
     mut window_resize_event: EventReader<WindowResized>,
+    mut query: Query<(&mut Sprite, &Transform, &Handle<Image>)>,
+    mut images: ResMut<Assets<Image>>,
     windows: Res<Windows>,
     time: Res<Time>,
     mouse_button_input: Res<Input<MouseButton>>,
+    mut canvas_size: ResMut<CanvasSize>,
+    texture_a: Res<TextureA>,
+    texture_b: Res<TextureB>,
+    texture_c: Res<TextureC>,
+    texture_d: Res<TextureD>,
 ) {
     // update resolution
     for window_resize in window_resize_event.iter() {
-        common_uniform.i_resolution.x = window_resize.width;
-        common_uniform.i_resolution.y = window_resize.height;
+        let old_buffer_length =
+            (common_uniform.i_resolution.x * common_uniform.i_resolution.y) as i32;
+
+        common_uniform.i_resolution.x = (window_resize.width * BORDERS).floor();
+        common_uniform.i_resolution.y = (window_resize.height * BORDERS).floor();
+
+        canvas_size.width = common_uniform.i_resolution.x as u32;
+        canvas_size.height = common_uniform.i_resolution.y as u32;
+        for (mut sprite, _, image_handle) in query.iter_mut() {
+            // let pos = transform.translation;
+
+            sprite.custom_size = Some(common_uniform.i_resolution);
+
+            make_new_texture(old_buffer_length, &canvas_size, image_handle, &mut images);
+            make_new_texture(old_buffer_length, &canvas_size, &texture_a.0, &mut images);
+            make_new_texture(old_buffer_length, &canvas_size, &texture_b.0, &mut images);
+            make_new_texture(old_buffer_length, &canvas_size, &texture_c.0, &mut images);
+            make_new_texture(old_buffer_length, &canvas_size, &texture_d.0, &mut images);
+
+            // println!("sprite.custom_size : {:?}", sprite.custom_size);
+        }
     }
 
     // update mouse position
     let window = windows.primary();
     if let Some(mouse_pos) = window.cursor_position() {
         let mut mp = mouse_pos;
-        mp.x = mp.x / common_uniform.i_resolution.x;
-        mp.y = mp.y / common_uniform.i_resolution.y;
+        // println!("mp: {:?}", mp);
 
-        common_uniform.i_mouse.x = mp.x;
-        common_uniform.i_mouse.y = mp.y;
+        for (_, transform, _) in query.iter() {
+            let pos = transform.translation.truncate();
+            let window_size = Vec2::new(window.width(), window.height());
+            let top_left = pos + (window_size - common_uniform.i_resolution) / 2.0;
+
+            // let bottom_right = top_left + common_uniform.i_resolution;
+
+            common_uniform.i_mouse.x = mp.x - top_left.x;
+            common_uniform.i_mouse.y = common_uniform.i_resolution.y - (mp.y - top_left.y);
+            // println!("mouse: {:?}", common_uniform.i_mouse);
+        }
+
         common_uniform.i_mouse.z = if mouse_button_input.pressed(MouseButton::Left) {
             1.0
         } else {
@@ -656,6 +773,7 @@ fn extract_main_image(
     image: Res<MainImage>,
     common_uniform: Res<CommonUniform>,
     all_shader_handles: Res<ShaderHandles>,
+    canvas_size: Res<CanvasSize>,
 ) {
     // insert common uniform only once
     commands.insert_resource(common_uniform.clone());
@@ -663,6 +781,8 @@ fn extract_main_image(
     commands.insert_resource(MainImage(image.clone()));
 
     commands.insert_resource(all_shader_handles.clone());
+
+    commands.insert_resource(canvas_size.clone());
 }
 
 fn queue_bind_group(
@@ -793,6 +913,7 @@ impl render_graph::Node for MainNode {
         world: &World,
     ) -> Result<(), render_graph::NodeRunError> {
         let bind_group = world.resource::<MainImageBindGroup>();
+        let canvas_size = world.resource::<CanvasSize>();
 
         let init_pipeline_cache = bind_group.init_pipeline;
         let update_pipeline_cache = bind_group.update_pipeline;
@@ -816,7 +937,11 @@ impl render_graph::Node for MainNode {
                     .get_compute_pipeline(init_pipeline_cache)
                     .unwrap();
                 pass.set_pipeline(init_pipeline);
-                pass.dispatch(SIZE.0 / WORKGROUP_SIZE, SIZE.1 / WORKGROUP_SIZE, 1);
+                pass.dispatch(
+                    canvas_size.width / WORKGROUP_SIZE,
+                    canvas_size.height / WORKGROUP_SIZE,
+                    1,
+                );
             }
 
             ShadertoyState::Update => {
@@ -824,7 +949,11 @@ impl render_graph::Node for MainNode {
                     .get_compute_pipeline(update_pipeline_cache)
                     .unwrap();
                 pass.set_pipeline(update_pipeline);
-                pass.dispatch(SIZE.0 / WORKGROUP_SIZE, SIZE.1 / WORKGROUP_SIZE, 1);
+                pass.dispatch(
+                    canvas_size.width / WORKGROUP_SIZE,
+                    canvas_size.height / WORKGROUP_SIZE,
+                    1,
+                );
             }
         }
 

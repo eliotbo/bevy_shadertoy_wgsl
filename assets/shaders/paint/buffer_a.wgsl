@@ -17,16 +17,16 @@ struct CommonUniform {
 var<uniform> uni: CommonUniform;
 
 [[group(0), binding(1)]]
-var buffer_a: texture_storage_2d<rgba8unorm, read_write>;
+var buffer_a: texture_storage_2d<rgba32float, read_write>;
 
 [[group(0), binding(2)]]
-var buffer_b: texture_storage_2d<rgba8unorm, read_write>;
+var buffer_b: texture_storage_2d<rgba32float, read_write>;
 
 [[group(0), binding(3)]]
-var buffer_c: texture_storage_2d<rgba8unorm, read_write>;
+var buffer_c: texture_storage_2d<rgba32float, read_write>;
 
 [[group(0), binding(4)]]
-var buffer_d: texture_storage_2d<rgba8unorm, read_write>;
+var buffer_d: texture_storage_2d<rgba32float, read_write>;
 
 
 
@@ -131,8 +131,9 @@ fn sdCircle(p: vec2<f32>, c: vec2<f32>, r: f32) -> f32 {
 [[stage(compute), workgroup_size(8, 8, 1)]]
 fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
     let R: vec2<f32> = uni.iResolution.xy;
-    // let location = vec2<i32>(i32(invocation_id.x), i32(invocation_id.y));
     let location = vec2<i32>(i32(invocation_id.x), i32(invocation_id.y));
+    // let location = vec2<i32>(i32(invocation_id.x), i32(invocation_id.y));
+    // let location = vec2<i32>(i32(invocation_id.x), i32(R.y) - i32(invocation_id.y));
 
     // the first three frames are not directed inside the update function.
     // The first time this function is called is on frame 4.
@@ -150,12 +151,12 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
 
     
     let U: vec2<f32> = vec2<f32>(location) / R;
-    let M: vec2<f32> = vec2<f32>(uni.iMouse.x, 1.0-uni.iMouse.y);
+    let M: vec2<f32> = vec2<f32>(uni.iMouse.x, R.y-uni.iMouse.y) / R ;
 
     var O: vec4<f32> =  textureLoad(buffer_a, location);
 
     if (location.x == 0 && location.y == 0 )  {
-        if ( uni.iMouse.x < 0.1 && uni.iMouse.w == 1.0) { // just pressed left mouse button
+        if ( M.x < 0.1 && uni.iMouse.w == 1.0) { // just pressed left mouse button
             let y: f32 = floor(9.*M.y);
             O = hue( y/8. ); 
             textureStore(buffer_a, location, O);
@@ -164,7 +165,7 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
     }
 
     // display palette on left
-    if ( U.x < 0.1  ) {  
+    if ( U.x < 0.1  ) {
         let y: f32 = floor(9.*U.y);
         O = hue( y/8. ); 
         O.w = 1.;
@@ -177,13 +178,16 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
 
     // apply paint
     if (uni.iMouse.z == 1.0) {
-        let mouse_pix = vec2<f32>(uni.iMouse.x *  R.x, (1.0 - uni.iMouse.y) * R.y );
+        // let mouse_pix = vec2<f32>(uni.iMouse.x *  R.x, (1.0 - uni.iMouse.y) * R.y );
+        let mouse_pix = vec2<f32>(uni.iMouse.x , R.y - uni.iMouse.y );
 
         let brush_sdf = sdCircle(vec2<f32>(location), mouse_pix, 10.0);
         let brush_d = smoothStep(0.0, 5.0, brush_sdf);
-        O = mix(O, brush_color, (1.0-brush_d) * 0.01);
+        let brush_intensity = 0.1;
+        O = mix(O, brush_color, (1.0-brush_d) * brush_intensity);
     }
     
+    let inverted_y = vec2<i32>(location.x,   location.y);
 
 
     textureStore(buffer_a, location, O);
