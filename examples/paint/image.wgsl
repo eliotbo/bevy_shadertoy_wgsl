@@ -8,7 +8,15 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
 
     var alive = true;
 
+	var q: f32;
+	if (true) { 
+		q = 1.;
+	} else { 
+		q = 4.;
+	};
+
     var O: vec4<f32> =  mix(textureLoad(buffer_a, location),vec4<f32>(0.5), 0.1);
+
     // var O: vec4<f32> = vec4<f32>(0.5);
 
     textureStore(texture, y_inverted_location, O);

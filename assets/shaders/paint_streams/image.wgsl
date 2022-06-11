@@ -53,42 +53,42 @@ let h: f32 = 1.;
 let fluid_rho = 0.5;
 
 fn Pf(rho: vec2<f32>) -> f32 {
-	let GF: f32 = 1.;
-	return mix(0.5 * rho.x, 0.04 * rho.x * (rho.x / fluid_rho - 1.), GF);
+    let GF: f32 = 1.;
+    return mix(0.5 * rho.x, 0.04 * rho.x * (rho.x / fluid_rho - 1.), GF);
 } 
 
 fn Rot(ang: f32) -> mat2x2<f32> {
-	return mat2x2<f32>(cos(ang), -sin(ang), sin(ang), cos(ang));
+    return mat2x2<f32>(cos(ang), -sin(ang), sin(ang), cos(ang));
 } 
 
 fn Dir(ang: f32) -> vec2<f32> {
-	return vec2<f32>(cos(ang), sin(ang));
+    return vec2<f32>(cos(ang), sin(ang));
 } 
 
-fn sdBox( p: vec2<f32>,  b: vec2<f32>) -> f32 {
-	let d: vec2<f32> = abs(p) - b;
-	return length(max(d, vec2<f32>(0.))) + min(max(d.x, d.y), 0.);
+fn sdBox(p: vec2<f32>, b: vec2<f32>) -> f32 {
+    let d: vec2<f32> = abs(p) - b;
+    return length(max(d, vec2<f32>(0.))) + min(max(d.x, d.y), 0.);
 } 
 
 
 fn pack(x: vec2<f32>) -> u32 {
-	let x2: vec2<f32> = 65534. * clamp(0.5 * x + 0.5, vec2<f32>(0.), vec2<f32>(1.));
-	return u32(round(x2.x)) + 65535u * u32(round(x2.y));
+    let x2: vec2<f32> = 65534. * clamp(0.5 * x + 0.5, vec2<f32>(0.), vec2<f32>(1.));
+    return u32(round(x2.x)) + 65535u * u32(round(x2.y));
 } 
 
 fn unpack(a: u32) -> vec2<f32> {
-	var x: vec2<f32> = vec2<f32>(f32(a % 65535u), f32(a / 65535u));
-	return clamp(x / 65534., vec2<f32>(0.), vec2<f32>(1.)) * 2. - 1.;
+    var x: vec2<f32> = vec2<f32>(f32(a) % 65535., f32(a) / 65535.);
+    return clamp(x / 65534., vec2<f32>(0.), vec2<f32>(1.)) * 2. - 1.;
 } 
 
 fn decode(x: f32) -> vec2<f32> {
-	var X: u32 = u32(x);
-	return unpack(X);
+    var X: u32 = u32(x);
+    return unpack(X);
 } 
 
 fn encode(x: vec2<f32>) -> f32 {
-	var X: u32 = pack(x);
-	return f32(X);
+    var X: u32 = pack(x);
+    return f32(X);
 } 
 
 struct particle {
@@ -99,39 +99,39 @@ struct particle {
 
 fn getParticle(data: vec4<f32>, pos: vec2<f32>) -> particle {
     var P: particle = particle(
-        decode(data.x) + pos, 
-        decode(data.y), 
+        decode(data.x) + pos,
+        decode(data.y),
         data.zw
     );
-	return P;
+    return P;
 } 
 
 fn saveParticle(P: particle, pos: vec2<f32>) -> vec4<f32> {
     var P2: particle = particle(P.X, P.V, P.M);
-	P2.X = clamp(P2.X - pos, vec2<f32>(-0.5), vec2<f32>(0.5));
-	return vec4<f32>(encode(P2.X), encode(P2.V), P2.M);
+    P2.X = clamp(P2.X - pos, vec2<f32>(-0.5), vec2<f32>(0.5));
+    return vec4<f32>(encode(P2.X), encode(P2.V), P2.M);
 } 
 
 fn hash32(p: vec2<f32>) -> vec3<f32> {
-	var p3: vec3<f32> = fract(vec3<f32>(p.xyx) * vec3<f32>(.1031, .1030, .0973));
-	p3 = p3 + (dot(p3, p3.yxz + 33.33));
-	return fract((p3.xxy + p3.yzz) * p3.zyx);
+    var p3: vec3<f32> = fract(vec3<f32>(p.xyx) * vec3<f32>(.1031, .1030, .0973));
+    p3 = p3 + (dot(p3, p3.yxz + 33.33));
+    return fract((p3.xxy + p3.yzz) * p3.zyx);
 } 
 
 fn G(x: vec2<f32>) -> f32 {
-	return exp(-dot(x, x));
+    return exp(-dot(x, x));
 } 
 
 fn G0(x: vec2<f32>) -> f32 {
-	return exp(-length(x));
+    return exp(-length(x));
 } 
 
 let dif: f32 = 1.12;
 
 fn distribution(x: vec2<f32>, p: vec2<f32>, K: f32) -> vec3<f32> {
-	let omin: vec2<f32> = clamp(x - K * 0.5, p - 0.5, p + 0.5);
-	let omax: vec2<f32> = clamp(x + K * 0.5, p - 0.5, p + 0.5);
-	return vec3<f32>(0.5 * (omin + omax), (omax.x - omin.x) * (omax.y - omin.y) / (K * K));
+    let omin: vec2<f32> = clamp(x - K * 0.5, p - 0.5, p + 0.5);
+    let omax: vec2<f32> = clamp(x + K * 0.5, p - 0.5, p + 0.5);
+    return vec3<f32>(0.5 * (omin + omax), (omax.x - omin.x) * (omax.y - omin.y) / (K * K));
 } 
 
 
@@ -163,34 +163,35 @@ fn distribution(x: vec2<f32>, p: vec2<f32>, K: f32) -> vec3<f32> {
 // } 
 
 fn mixN(a: vec3<f32>, b: vec3<f32>, k: f32) -> vec3<f32> {
-	return sqrt(mix(a * a, b * b, clamp(k, 0., 1.)));
-
+    return sqrt(mix(a * a, b * b, clamp(k, 0., 1.)));
 } 
 
 fn V(location: vec2<i32>, R2: vec2<f32>) -> vec4<f32> {
 	// return pixel(ch1, p);
     // return textureLoad(buffer_c, vec2<i32>(p ));
-	let data: vec4<f32> =  textureLoad(buffer_c, location);
-
+    let data: vec4<f32> = textureLoad(buffer_c, location);
+    return data;
 } 
 
 fn border(p: vec2<f32>, R2: vec2<f32>, time: f32) -> f32 {
-	let bound: f32 = -sdBox(p - R2 * 0.5, R2 * vec2<f32>(0.5, 0.5));
-	let box: f32 = sdBox(Rot(0. * time) * (p - R2 * vec2<f32>(0.5, 0.6)), R2 * vec2<f32>(0.05, 0.01));
-	let drain: f32 = -sdBox(p - R2 * vec2<f32>(0.5, 0.7), R2 * vec2<f32>(1.5, 0.5));
-	return max(drain, min(bound, box));
-
+    let bound: f32 = -sdBox(p - R2 * 0.5, R2 * vec2<f32>(0.5, 0.5));
+    let box: f32 = sdBox(Rot(0. * time) * (p - R2 * vec2<f32>(0.5, 0.6)), R2 * vec2<f32>(0.05, 0.01));
+    let drain: f32 = -sdBox(p - R2 * vec2<f32>(0.5, 0.7), R2 * vec2<f32>(1.5, 0.5));
+    return max(drain, min(bound, box));
 } 
 
-fn bN(p: vec2<f32>, R2: vec2<f32>, time: f32) -> vec3<f32> {
-	let dx: vec3<f32> = vec3<f32>(-h, 0.0, h);
-	let idx: vec4<f32> = vec4<f32>(-1./h, 0., 1./h, 0.25);
-	let r: vec3<f32> = idx.zyw * border(p + dx.zy, R2, time) 
-                     + idx.xyw * border(p + dx.xy, R2, time) 
-                     + idx.yzw * border(p + dx.yz, R2, time) 
-                     + idx.yxw * border(p + dx.yx, R2, time);
-	return vec3<f32>(normalize(r.xy),  r.z + 1e-4);
+// fn bN(p: vec2<f32>, R2: vec2<f32>, time: f32) -> vec3<f32> {
+//     let dx: vec3<f32> = vec3<f32>(-h, 0.0, h);
+//     let idx: vec4<f32> = vec4<f32>(-1. / h, 0., 1. / h, 0.25);
+//     let r: vec3<f32> = idx.zyw * border(p + dx.zy, R2, time) + idx.xyw * border(p + dx.xy, R2, time) + idx.yzw * border(p + dx.yz, R2, time) + idx.yxw * border(p + dx.yx, R2, time);
+//     return vec3<f32>(normalize(r.xy), r.z + 1, e, -4);
+// } 
 
+fn bN(p: vec2<f32>, R2: vec2<f32>, time: f32) -> vec3<f32> {
+    let dx: vec3<f32> = vec3<f32>(-h, 0., h);
+    let idx: vec4<f32> = vec4<f32>(-1. / h, 0., 1. / h, 0.25);
+    let r: vec3<f32> = idx.zyw * border(p + dx.zy, R2, time) + idx.xyw * border(p + dx.xy, R2, time) + idx.yzw * border(p + dx.yz, R2, time) + idx.yxw * border(p + dx.yx, R2, time);
+    return vec3<f32>(normalize(r.xy), r.z + 0.0001);
 } 
 
 [[stage(compute), workgroup_size(8, 8, 1)]]
@@ -203,57 +204,54 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
 
 // fn mainImage( col: vec4<f32>,  pos: vec2<f32>) -> () {
 
-	let R2 = uni.iResolution.xy;
+    let R2 = uni.iResolution.xy;
 
 	// let location = vec2<i32>(i32(invocation_id.x),  i32(invocation_id.y));
-	let location = vec2<i32>(i32(invocation_id.x),  i32(invocation_id.y));
-	let time = uni.iTime;
+    let location = vec2<i32>(i32(invocation_id.x), i32(invocation_id.y));
+    let time = uni.iTime;
 
 	// let p: vec2<i32> = vec2<i32>(pos);
 	// let data: vec4<f32> = texel(ch0, pos);
 
     // let p: vec2<i32> = vec2<i32>(location.x, i32(R2.y) - location.y);
 
-    let data: vec4<f32> =  textureLoad(buffer_a, location);
+    let data: vec4<f32> = textureLoad(buffer_a, location);
 
-    let pos = vec2<f32>(location);
+    let pos = vec2<f32>(location) ;
 
-	var P: particle = getParticle(data, pos);
+    var P: particle = getParticle(data, pos);
 
-	let Nb: vec3<f32> = bN(P.X, R2, time);
-	let bord: f32 = smoothStep(2. * border_h, border_h * 0.5, border(pos, R2, time));
-	let rho: vec4<f32> = V(location, R2);
-	let dx: vec3<i32> = vec3<i32>(-2, 0, 2);
+    let Nb: vec3<f32> = bN(P.X, R2, time);
+    let bord: f32 = smoothStep(2. * border_h, border_h * 0.5, border(pos, R2, time));
+    let rho: vec4<f32> = V(location, R2);
+    let dx: vec3<i32> = vec3<i32>(-2, 0, 2);
 
-	let grad: vec4<f32> = -0.5 * vec4<f32>( V(location + dx.zy, R2).zw - V(location + dx.xy, R2).zw, 
-                                            V(location + dx.yz, R2).zw - V(location + dx.yx, R2).zw);
-	let N: vec2<f32> = pow(length(grad.xz), 0.2) * normalize(grad.xz + 0.00001);
+    let grad: vec4<f32> = -0.5 * vec4<f32>(V(location + dx.zy, R2).zw - V(location + dx.xy, R2).zw, V(location + dx.yz, R2).zw - V(location + dx.yx, R2).zw);
+    let N: vec2<f32> = pow(length(grad.xz), 0.2) * normalize(grad.xz + 0.00001);
 
-	let specular: f32 = pow(max(dot(N, Dir(1.4)), 0.), 3.5);
+    let specular: f32 = pow(max(dot(N, Dir(1.4)), 0.), 3.5);
 	// let specularb: f32 = G(0.4 * (Nb.zz - border_h)) * pow(max(dot(Nb.xy, Dir(1.4)), 0.), 3.);
 
 
-	let a: f32 = pow(smoothStep(fluid_rho * 0., fluid_rho * 2., rho.z), 0.1);
-	let b: f32 = exp(-1.7 * smoothStep(fluid_rho * 1., fluid_rho * 7.5, rho.z));
-	let col0: vec3<f32> = vec3<f32>(1., 0.5, 0.);
-	let col1: vec3<f32> = vec3<f32>(0.1, 0.4, 1.);
+    let a: f32 = pow(smoothStep(fluid_rho * 0., fluid_rho * 2., rho.z), 0.1);
+    let b: f32 = exp(-1.7 * smoothStep(fluid_rho * 1., fluid_rho * 7.5, rho.z));
+    let col0: vec3<f32> = vec3<f32>(1., 0.5, 0.);
+    let col1: vec3<f32> = vec3<f32>(0.1, 0.4, 1.);
 
 
-	let fcol: vec3<f32> = mixN(col0, col1, tanh(3. * (rho.w - 0.7)) * 0.5 + 0.5);
+    let fcol: vec3<f32> = mixN(col0, col1, tanh(3. * (rho.w - 0.7)) * 0.5 + 0.5);
     // var col: vec4<f32>;
 
-	var col: vec3<f32> = vec3<f32>(3.);
-	col = mixN(col.xyz, fcol.xyz * (1.5 * b + specular * 5.), a);
+    var col: vec3<f32> = vec3<f32>(3.);
+    col = mixN(col.xyz, fcol.xyz * (1.5 * b + specular * 5.), a);
 
 
-	col = mixN(col, 0. * vec3<f32>(0.5, 0.5, 1.), bord);
-	col = tanh(col);
+    col = mixN(col, 0. * vec3<f32>(0.5, 0.5, 1.), bord);
+    col = tanh(col);
     let col4 = vec4<f32>(col, 1.0);
 
 	// let grey = vec4<f32>(0.8);
 
     textureStore(texture, location, col4);
-	// textureStore(texture, location, data);
-
-
+    // textureStore(texture, location, data);
 } 

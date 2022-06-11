@@ -304,7 +304,8 @@ fn setup(
     // let example = "paint";
     // let example = "mixing_liquid";
     // let example = "paint_streams";
-    let example = "molecular_dynamics";
+    let example = "paint_streams2";
+    // let example = "molecular_dynamics";
     // let example = "love_and_domination";
     // let example = "dancing_tree";
     // let example = "simplest_detailed_fluid";

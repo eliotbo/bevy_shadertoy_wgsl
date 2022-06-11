@@ -52,6 +52,8 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
 // fn mainImage( col: vec4<f32>,  pos: vec2<f32>) -> () {
 
 
+
+
 	var rho: f32 = 0.001;
 	var vel: vec2<f32> = vec2<f32>(0., 0.);
 	for (var i: i32 = -2; i <= 2; i = i + 1) {

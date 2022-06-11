@@ -17,19 +17,19 @@ struct CommonUniform {
 var<uniform> uni: CommonUniform;
 
 [[group(0), binding(1)]]
-var buffer_a: texture_storage_2d<rgba8unorm, read_write>;
+var buffer_a: texture_storage_2d<rgba32float, read_write>;
 
 [[group(0), binding(2)]]
-var buffer_b: texture_storage_2d<rgba8unorm, read_write>;
+var buffer_b: texture_storage_2d<rgba32float, read_write>;
 
 [[group(0), binding(3)]]
-var buffer_c: texture_storage_2d<rgba8unorm, read_write>;
+var buffer_c: texture_storage_2d<rgba32float, read_write>;
 
 [[group(0), binding(4)]]
-var buffer_d: texture_storage_2d<rgba8unorm, read_write>;
+var buffer_d: texture_storage_2d<rgba32float, read_write>;
 
 [[group(0), binding(5)]]
-var texture: texture_storage_2d<rgba8unorm, read_write>;
+var texture: texture_storage_2d<rgba32float, read_write>;
 
 // [[stage(compute), workgroup_size(8, 8, 1)]]
 // fn init([[builtin(global_invocation_id)]] invocation_id: vec3<u32>, [[builtin(num_workgroups)]] num_workgroups: vec3<u32>) {
@@ -142,7 +142,8 @@ fn norm(p: vec3<f32>) -> vec3<f32> {
 [[stage(compute), workgroup_size(8, 8, 1)]]
 fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
     let R: vec2<f32> = uni.iResolution.xy;
-    let location = vec2<i32>(i32(invocation_id.x),  i32(invocation_id.y));
+    let location = vec2<i32>(i32(invocation_id.x), i32(invocation_id.y));
+	let y_inverted_location = vec2<i32>(i32(invocation_id.x), i32(R.y) - i32(invocation_id.y));
 
 	light = vec3<f32>(0.2 * sin(uni.iTime), 0.5, -0.5);
 	if (uni.iMouse.z > 0.) {	
@@ -163,7 +164,7 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
 	C = C * (2.5 * dot(d, n) * (0.3 + 0.7 * length(lp - p) / length(light - p)));
 	C = atan(C) / pi * 2.;
 
-    textureStore(texture, location, C);
+    textureStore(texture, y_inverted_location, C);
 
 } 
 
