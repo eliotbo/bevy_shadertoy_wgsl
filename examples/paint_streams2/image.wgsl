@@ -11,7 +11,21 @@ fn V(p: vec2<f32>) -> vec4<f32> {
 
 
 
+fn border(p: vec2<f32>, R2: vec2<f32>) -> f32 {
+    let bound: f32 = -sdBox(p - R2 * 0.5, R2 * vec2<f32>(0.5, 0.5));
+    let box: f32 = sdBox(Rot(0. * time) * (p - R2 * vec2<f32>(0.5, 0.6)), R2 * vec2<f32>(0.05, 0.01));
+    let drain: f32 = -sdBox(p - R2 * vec2<f32>(0.5, 0.7), R2 * vec2<f32>(1.5, 0.5));
+    return max(drain, min(bound, box));
+} 
 
+
+
+fn bN(p: vec2<f32>, R2: vec2<f32>) -> vec3<f32> {
+    let dx: vec3<f32> = vec3<f32>(-h, 0., h);
+    let idx: vec4<f32> = vec4<f32>(-1. / h, 0., 1. / h, 0.25);
+    let r: vec3<f32> = idx.zyw * border(p + dx.zy, R2) + idx.xyw * border(p + dx.xy, R2) + idx.yzw * border(p + dx.yz, R2) + idx.yxw * border(p + dx.yx, R2);
+    return vec3<f32>(normalize(r.xy), r.z + 1.0e-4);
+} 
 
 [[stage(compute), workgroup_size(8, 8, 1)]]
 fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
@@ -22,7 +36,7 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
     var col: vec4<f32>;
     var pos = vec2<f32>(f32(location.x), f32(location.y)) ;
 
-    Mouse = uni.iMouse;
+    // let Mouse = uni.iMouse;
     time = uni.iTime;
 
     let p: vec2<i32> = vec2<i32>(pos);
@@ -80,12 +94,12 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
     //     col2 = vec4<f32>(back.x, back.y, 0.29, 1.0);
     // }
 
-    let data2: vec4<f32> = (textureLoad(buffer_a, location)  ) ;
-    var pb: particle = getParticle(data2, pos);
-    let v2 = (pb.X - pos + 1.0) / 2.;
+    // let data2: vec4<f32> = (textureLoad(buffer_a, location)  ) ;
+    // var pb: particle = getParticle(data2, pos);
+    // let v2 = (pb.X - pos + 1.0) / 2.;
     // let v2 = (pb.M ) / 1.;
 
-    let debug = vec4<f32>(v2.x, 0.0, 0.0, 1.0);
+    // let debug = vec4<f32>(v2.x, 0.0, 0.0, 1.0);
 
     // if (Mouse.z > 0.5) {
     //     col = debug;

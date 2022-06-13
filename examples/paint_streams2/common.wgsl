@@ -37,21 +37,7 @@ fn sdBox(p: vec2<f32>, b: vec2<f32>) -> f32 {
     return length(max(d, vec2<f32>(0.))) + min(max(d.x, d.y), 0.);
 } 
 
-fn border(p: vec2<f32>, R2: vec2<f32>) -> f32 {
-    let bound: f32 = -sdBox(p - R2 * 0.5, R2 * vec2<f32>(0.5, 0.5));
-    let box: f32 = sdBox(Rot(0. * time) * (p - R2 * vec2<f32>(0.5, 0.6)), R2 * vec2<f32>(0.05, 0.01));
-    let drain: f32 = -sdBox(p - R2 * vec2<f32>(0.5, 0.7), R2 * vec2<f32>(1.5, 0.5));
-    return max(drain, min(bound, box));
-} 
 
-
-
-fn bN(p: vec2<f32>, R2: vec2<f32>) -> vec3<f32> {
-    let dx: vec3<f32> = vec3<f32>(-h, 0., h);
-    let idx: vec4<f32> = vec4<f32>(-1. / h, 0., 1. / h, 0.25);
-    let r: vec3<f32> = idx.zyw * border(p + dx.zy, R2) + idx.xyw * border(p + dx.xy, R2) + idx.yzw * border(p + dx.yz, R2) + idx.yxw * border(p + dx.yx, R2);
-    return vec3<f32>(normalize(r.xy), r.z + 1.0e-4);
-} 
 
 // uint pack(vec2 x)
 // {

@@ -557,20 +557,35 @@ fn update_common_uniform(
             // let bottom_right = top_left + common_uniform.i_resolution;
 
             common_uniform.i_mouse.x = mp.x - top_left.x;
-            common_uniform.i_mouse.y = common_uniform.i_resolution.y - (mp.y - top_left.y);
+            // common_uniform.i_mouse.y = common_uniform.i_resolution.y - (mp.y - top_left.y);
+            common_uniform.i_mouse.y = (mp.y - top_left.y);
             // println!("mouse: {:?}", common_uniform.i_mouse);
+
+            if mouse_button_input.just_pressed(MouseButton::Left) {
+                common_uniform.i_mouse.z = common_uniform.i_mouse.x;
+                common_uniform.i_mouse.w = common_uniform.i_mouse.y;
+            }
+
+            if mouse_button_input.pressed(MouseButton::Left) {
+                common_uniform.i_mouse.z = common_uniform.i_mouse.z.abs();
+                common_uniform.i_mouse.w = common_uniform.i_mouse.w.abs();
+            } else {
+                common_uniform.i_mouse.z = -common_uniform.i_mouse.z.abs();
+                common_uniform.i_mouse.w = -common_uniform.i_mouse.w.abs();
+            }
+            println!("mouse: {:?}", common_uniform.i_mouse);
         }
 
-        common_uniform.i_mouse.z = if mouse_button_input.pressed(MouseButton::Left) {
-            1.0
-        } else {
-            0.0
-        };
-        common_uniform.i_mouse.w = if mouse_button_input.just_pressed(MouseButton::Left) {
-            1.0
-        } else {
-            0.0
-        };
+        // common_uniform.i_mouse.z = if mouse_button_input.pressed(MouseButton::Left) {
+        //     1.0
+        // } else {
+        //     0.0
+        // };
+        // common_uniform.i_mouse.w = if mouse_button_input.just_pressed(MouseButton::Left) {
+        //     1.0
+        // } else {
+        //     0.0
+        // };
 
         // println!("{:?}", mp);
     }
