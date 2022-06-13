@@ -9,8 +9,11 @@ fn Reintegration(ch: texture_storage_2d<rgba32float, read_write>, pos: vec2<f32>
             let data: vec4<f32> = textureLoad(ch, vec2<i32>(tpos));
 
             var P0: particle = getParticle(data, tpos);
-            P0.X = P0.X + (P0.V * dt);
+
+            P0.X = P0.X + (P0.V * dt); //integrate position
+
             let difR: f32 = 0.9 + 0.21 * smoothStep(fluid_rho * 0., fluid_rho * 0.333, P0.M.x);
+
             let D: vec3<f32> = distribution(P0.X, pos, difR);
             let m: f32 = P0.M.x * D.z;
             P.X = P.X + (D.xy * m);
@@ -21,7 +24,7 @@ fn Reintegration(ch: texture_storage_2d<rgba32float, read_write>, pos: vec2<f32>
     }
 
 
-    if (P.M.x != 0.) {
+    if (P.M.x > 0.0000001) {
         P.X = P.X / (P.M.x);
         P.V = P.V / (P.M.x);
         P.M.y = P.M.y / (P.M.x);
@@ -35,7 +38,7 @@ fn Reintegration(ch: texture_storage_2d<rgba32float, read_write>, pos: vec2<f32>
 [[stage(compute), workgroup_size(8, 8, 1)]]
 fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
     let R: vec2<f32> = uni.iResolution.xy;
-    let y_inverted_location = vec2<i32>(i32(invocation_id.x), i32(R.y) - i32(invocation_id.y));
+    // let y_inverted_location = vec2<i32>(i32(invocation_id.x), i32(R.y) - i32(invocation_id.y));
     let location = vec2<i32>(i32(invocation_id.x), i32(invocation_id.y));
 
     var U: vec4<f32>;
@@ -67,5 +70,6 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
 	// }
 
     U = saveParticle(P, pos);
+    // U = clamp(U, vec4<f32>(0.), vec4<f32>(1.));
     textureStore(buffer_a, location, U);
 } 

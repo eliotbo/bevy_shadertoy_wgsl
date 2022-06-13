@@ -33,7 +33,7 @@ use texture_d::{extract_texture_d, queue_bind_group_d, TextureD, TextureDNode, T
 // pub const SIZE: (u32, u32) = (1280, 720);
 pub const WORKGROUP_SIZE: u32 = 8;
 pub const NUM_PARTICLES: u32 = 256;
-pub const BORDERS: f32 = 0.9;
+pub const BORDERS: f32 = 1.0;
 
 // const COMMON: &'static str = include_str!("common.wgsl");
 
@@ -88,16 +88,16 @@ fn main() {
 
     let mut app = App::new();
     // app.insert_resource(wgpu_options)
-    app.insert_resource(ClearColor(Color::BLACK))
+    app.insert_resource(ClearColor(Color::GRAY))
         .insert_resource(WindowDescriptor {
-            width: 1280.,
-            height: 780.,
+            width: 960.,
+            height: 600.,
             // present_mode: PresentMode::Immediate, // uncomment for unthrottled FPS
             ..default()
         })
         .insert_resource(CanvasSize {
-            width: (1280.0_f32 * BORDERS).floor() as u32,
-            height: (780.0_f32 * BORDERS).floor() as u32,
+            width: (960.0_f32 * BORDERS).floor() as u32,
+            height: (600.0_f32 * BORDERS).floor() as u32,
         })
         .add_plugins(DefaultPlugins)
         .add_system(bevy::input::system::exit_on_esc_system)
