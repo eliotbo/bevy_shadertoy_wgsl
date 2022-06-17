@@ -109,6 +109,14 @@ fn main() {
         .run();
 }
 
+// #[derive(Component)]
+// struct ComponentA(f32);
+
+// #[derive(Bundle)]
+// struct MyBundle {
+//     a: ComponentA,
+// }
+
 fn setup(
     mut commands: Commands,
     mut images: ResMut<Assets<Image>>,
@@ -116,6 +124,7 @@ fn setup(
     // mut shaders: ResMut<Assets<Shader>>,
     asset_server: Res<AssetServer>,
     windows: Res<Windows>,
+    // mut custom_materials: ResMut<Assets<CustomMaterial>>,
 ) {
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
 
@@ -136,6 +145,27 @@ fn setup(
 
     commands.insert_resource(MainImage(image.clone()));
 
+    // let texture_handle: Handle<Texture> = asset_server.load("textures/font.png");
+
+    // custom_materials.add(CustomMaterial {
+    //     texture: asset_server
+    //         .load("models/FlightHelmet/FlightHelmet_Materials_LensesMat_OcclusionRoughMetal.png"),
+    // });
+
+    // let material_handle = materials.add(StandardMaterial {
+    //     albedo_texture: Some(texture_handle.clone()),
+    //     shaded: false,
+    //     ..Default::default()
+    // });
+
+    //     commands
+    //     // the whole texture array
+    //     .spawn(PbrBundle {
+    //         mesh: meshes.add(mesh),
+    //         material: material_handle.clone(),
+    //         ..Default::default()
+    //     })
+
     commands.spawn_bundle(SpriteBundle {
         sprite: Sprite {
             custom_size: Some(Vec2::new(
@@ -154,6 +184,7 @@ fn setup(
         transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
         ..default()
     });
+    // .insert(texture_handle);
 
     let window = windows.primary();
     let mut common_uniform = CommonUniform::default();
@@ -250,6 +281,37 @@ fn setup(
 
     commands.insert_resource(TextureD(texture_d));
 
+    // //
+    // //
+    // //
+    // // Font Texture
+    //     let mut font_texture = Image::new_fill(
+    //     Extent3d {
+    //         width: canvas_size.width,
+    //         height: canvas_size.height,
+    //         depth_or_array_layers: 1,
+    //     },
+    //     TextureDimension::D2,
+    //     // &[255, 255, 255, 255],
+    //     &[0, 0, 0, 0],
+    //     TextureFormat::Rgba32Float,
+    // );
+
+    //             texture: asset_server.load(
+    //             "models/FlightHelmet/FlightHelmet_Materials_LensesMat_OcclusionRoughMetal.png",
+    //         ),
+
+    // commands.spawn().insert_bundle(MaterialMeshBundle {
+    //     mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
+    //     transform: Transform::from_xyz(0.0, 0.5, 0.0),
+    //     material: custom_materials.add(CustomMaterial {
+    //         texture: asset_server.load(
+    //             "models/FlightHelmet/FlightHelmet_Materials_LensesMat_OcclusionRoughMetal.png",
+    //         ),
+    //     }),
+    //     ..default()
+    // });
+
     //
     //
     //
@@ -304,7 +366,8 @@ fn setup(
     // let example = "paint";
     // let example = "mixing_liquid";
     // let example = "paint_streams";
-    let example = "paint_streams2";
+    // let example = "paint_streams2";
+    let example = "debugger";
     // let example = "molecular_dynamics";
     // let example = "love_and_domination";
     // let example = "dancing_tree";

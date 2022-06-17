@@ -54,7 +54,7 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
 
 	// if (uni.iFrame < 1) {
     #ifdef INIT
-    let rand: vec3<f32> = hash32(pos);
+    let rand: vec3<f32> =  hash32(pos); 
 
     if (rand.z < 0.) {
         P.X = pos;
