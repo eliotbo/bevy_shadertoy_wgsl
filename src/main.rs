@@ -1,3 +1,8 @@
+//! Notes:
+//! wglsl error messages do not display the correct line numbers when comparing to the
+//! buffer and image scripts because the shader that is read by the GPU includes
+//! the uniform and the bindings, which add about 50 lines of code
+
 use bevy::{
     core_pipeline::node::MAIN_PASS_DEPENDENCIES,
     diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
@@ -17,6 +22,8 @@ use bevy::{
 
 use std::borrow::Cow;
 use std::fs; // not compatible with WASM -->
+
+mod debugger;
 
 mod texture_a;
 use texture_a::*;
@@ -76,6 +83,11 @@ pub const BORDERS: f32 = 1.0;
 pub struct CanvasSize {
     pub width: u32,
     pub height: u32,
+}
+
+#[derive(Clone)]
+pub struct FontImage {
+    handle: Handle<Image>,
 }
 
 fn main() {
@@ -145,26 +157,7 @@ fn setup(
 
     commands.insert_resource(MainImage(image.clone()));
 
-    // let texture_handle: Handle<Texture> = asset_server.load("textures/font.png");
-
-    // custom_materials.add(CustomMaterial {
-    //     texture: asset_server
-    //         .load("models/FlightHelmet/FlightHelmet_Materials_LensesMat_OcclusionRoughMetal.png"),
-    // });
-
-    // let material_handle = materials.add(StandardMaterial {
-    //     albedo_texture: Some(texture_handle.clone()),
-    //     shaded: false,
-    //     ..Default::default()
-    // });
-
-    //     commands
-    //     // the whole texture array
-    //     .spawn(PbrBundle {
-    //         mesh: meshes.add(mesh),
-    //         material: material_handle.clone(),
-    //         ..Default::default()
-    //     })
+    let texture_handle: Handle<Image> = asset_server.load("textures/font.png");
 
     commands.spawn_bundle(SpriteBundle {
         sprite: Sprite {
@@ -184,7 +177,10 @@ fn setup(
         transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
         ..default()
     });
-    // .insert(texture_handle);
+
+    commands.insert_resource(FontImage {
+        handle: texture_handle,
+    });
 
     let window = windows.primary();
     let mut common_uniform = CommonUniform::default();
@@ -566,6 +562,7 @@ fn make_new_texture(
     }
 }
 
+// also updates the size of the buffers and main texture accordign to the window size
 // TODO: update date, channel time, channe l_resolution, sample_rate
 fn update_common_uniform(
     mut common_uniform: ResMut<CommonUniform>,
@@ -812,6 +809,32 @@ impl FromWorld for MainImagePipeline {
                             },
                             count: None,
                         },
+                        // BindGroupLayoutEntry {
+                        //     binding: 6,
+                        //     visibility: ShaderStages::COMPUTE,
+                        //     ty: BindingType::StorageTexture {
+                        //         access: StorageTextureAccess::ReadWrite,
+                        //         format: TextureFormat::Rgba32Float,
+                        //         view_dimension: TextureViewDimension::D2,
+                        //     },
+                        //     count: None,
+                        // },
+                        BindGroupLayoutEntry {
+                            binding: 6,
+                            visibility: ShaderStages::COMPUTE,
+                            ty: BindingType::Texture {
+                                sample_type: TextureSampleType::Float { filterable: true },
+                                view_dimension: TextureViewDimension::D2,
+                                multisampled: false,
+                            },
+                            count: None,
+                        },
+                        // BindGroupLayoutEntry {
+                        //     binding: 7,
+                        //     visibility: ShaderStages::COMPUTE,
+                        //     ty: BindingType::Sampler(SamplerBindingType::Filtering),
+                        //     count: None,
+                        // },
                     ],
                 });
 
@@ -850,6 +873,7 @@ pub fn prepare_common_uniform(
 fn extract_main_image(
     mut commands: Commands,
     image: Res<MainImage>,
+    font_image: ResMut<FontImage>,
     common_uniform: Res<CommonUniform>,
     all_shader_handles: Res<ShaderHandles>,
     canvas_size: Res<CanvasSize>,
@@ -858,6 +882,8 @@ fn extract_main_image(
     commands.insert_resource(common_uniform.clone());
 
     commands.insert_resource(MainImage(image.clone()));
+
+    commands.insert_resource(font_image.clone());
 
     commands.insert_resource(all_shader_handles.clone());
 
@@ -869,6 +895,7 @@ fn queue_bind_group(
     pipeline: Res<MainImagePipeline>,
 
     gpu_images: Res<RenderAssets<Image>>,
+    font_image: Res<FontImage>,
     main_image: Res<MainImage>,
     texture_a_image: Res<TextureA>,
     texture_b_image: Res<TextureB>,
@@ -896,6 +923,7 @@ fn queue_bind_group(
     });
 
     let main_view = &gpu_images[&main_image.0];
+    let font_view = &gpu_images[&font_image.handle];
     let texture_a_view = &gpu_images[&texture_a_image.0];
     let texture_b_view = &gpu_images[&texture_b_image.0];
     let texture_c_view = &gpu_images[&texture_c_image.0];
@@ -929,6 +957,14 @@ fn queue_bind_group(
                 binding: 5,
                 resource: BindingResource::TextureView(&main_view.texture_view),
             },
+            BindGroupEntry {
+                binding: 6,
+                resource: BindingResource::TextureView(&font_view.texture_view),
+            },
+            // BindGroupEntry {
+            //     binding: 7,
+            //     resource: BindingResource::Sampler(&font_view.sampler),
+            // },
         ],
     });
 
