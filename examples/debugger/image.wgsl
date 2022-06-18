@@ -9,8 +9,9 @@ let font_texture_size: vec2<f32> = vec2<f32>(1024.0, 1024.0);
 fn char(ch: i32) -> f32 {
 
     let fr = fract(floor(vec2<f32>(f32(ch), 15.999 - f32(ch) / 16.)) / 16.);
-    let q = ivec2(font_texture_size * clamp(tp, v2(0.), v2(1.)) / 16. + fr );
-	let f: vec4<f32> = textureLoad(font_texture, q , 0);
+    let q = ivec2(font_texture_size * 1. * (clamp(tp, v2(0.), v2(1.)) / 16. + fr ));
+	let y_inverted_q = ivec2(q.x, i32(font_texture_size.y) - q.y);
+	let f: vec4<f32> = textureLoad(font_texture, y_inverted_q , 0);
 
 	return f.x * (f.y + 0.3) * (f.z + 0.3) * 2.;
 } 
@@ -56,15 +57,14 @@ fn drawInt(value: ptr<function, i32>,  minDigits: ptr<function, i32>) -> f32 {
 		}
 		c = c + (char(45));
 		tp.x = tp.x - (FONT_SPACE);
-;
+
 	}
 	var fn2: i32 = *value;
 	var digits: i32 = 1;
 
 	for (var ni: i32 = 0; ni < 10; ni = ni + 1) {
 		fn2 = fn2 / (10);
-		if (fn2 == 0) {		break;
- }
+		if (fn2 == 0) {		break; }
 		digits = digits + 1;
 	}
 
@@ -75,8 +75,7 @@ fn drawInt(value: ptr<function, i32>,  minDigits: ptr<function, i32>) -> f32 {
 		tp.x = tp.x + (0.5);
 		c = c + (char(48 + *value % 10));
 		*value = *value / (10);
-		if (ni >= digits) {		break;
- }
+		if (ni >= digits) {		break; }
 	}
 
 	tp.x = tp.x - (0.5 * f32(digits));
@@ -382,14 +381,14 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
     let y_inverted_location = vec2<i32>(i32(invocation_id.x), i32(R.y) - i32(invocation_id.y));
     let location = vec2<i32>(i32(invocation_id.x), i32(invocation_id.y));
     
-    // let uv =  vec2<f32> (location) / R;
-    // let color = textureSample(font_texture, font_texture_sampler, uv);
-    var color = textureLoad(font_texture, location, 0);
-    // color.x = 0.;
-    color.y = color.x;
-    color.z = color.x;
+    // // let uv =  vec2<f32> (location) / R;
+    // // let color = textureSample(font_texture, font_texture_sampler, uv);
+    // var color = textureLoad(font_texture, location, 0);
+    // // color.x = 0.;
+    // color.y = color.x;
+    // color.z = color.x;
 
-    textureStore(texture, location, color);
+    // textureStore(texture, location, color);
 
 	// var fragColor: vec4<f32>;
 	var fragCoord = vec2<f32>(f32(location.x), f32(location.y) );
@@ -415,10 +414,10 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
 	tp.x = tp.x - (FONT_SPACE);
 	c = c + (char(114));
 	tp.x = tp.x - (FONT_SPACE);
-;
+
 	c = c + (char(61));
 	tp.x = tp.x - (FONT_SPACE);
-;
+
 	vColor = vColor + (c * drawColor);
 
 	var max_digits_two: i32 = 2;
