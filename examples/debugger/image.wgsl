@@ -9,9 +9,13 @@ let font_texture_size: vec2<f32> = vec2<f32>(1024.0, 1024.0);
 fn char(ch: i32) -> f32 {
 
     let fr = fract(floor(vec2<f32>(f32(ch), 15.999 - f32(ch) / 16.)) / 16.);
-    let q = ivec2(font_texture_size * 1. * (clamp(tp, v2(0.), v2(1.)) / 16. + fr ));
-	let y_inverted_q = ivec2(q.x, i32(font_texture_size.y) - q.y);
-	let f: vec4<f32> = textureLoad(font_texture, y_inverted_q , 0);
+	let q = clamp(tp, v2(0.), v2(1.)) / 16. + fr ;
+    let q1 = ivec2(font_texture_size  * q);
+	let y_inverted_q1 = ivec2(q1.x, i32(font_texture_size.y) - q1.y);
+
+	// let f: vec4<f32> = textureLoad(font_texture, y_inverted_q1 , 0);
+
+	let f = textureSample(font_texture, font_texture_sampler, q);
 
 	return f.x * (f.y + 0.3) * (f.z + 0.3) * 2.;
 } 
@@ -371,9 +375,36 @@ fn WriteTestValues()  {
 	vColor = vColor + (c * headColor);
 } 
 
+fn sdRoundedBox(p: vec2<f32>, b: vec2<f32>, r: vec4<f32>) -> f32 {
+  var x = r.x;
+  var y = r.y;
+  x = select(r.z, r.x, p.x > 0.);
+  y = select(r.w, r.y, p.x > 0.);
+  x  = select(y, x, p.y > 0.);
+  let q = abs(p) - b + x;
+  return min(max(q.x, q.y), 0.) + length(max(q, vec2<f32>(0.))) - x;
+}
+
 fn ring(pos: vec2<f32>, radius: f32, thick: f32) -> f32 {
 	return mix(1., 0., smoothStep(thick, thick + 0.01, abs(length(uv - pos) - radius)));
 } 
+
+fn WriteBufferValues(v: vec4<f32>, location: vec2<i32>)  {
+	// SetTextPosition(5. * (mp.x +1.0) * aspect  , 10. * (mp.y +0.5)) ;
+	SetTextPosition(10. *  ((mp.x +1.) + 1. / aspect) , 10. * (-mp.y +1.)) ;
+	// SetTextPosition(15., 5.);
+	var vivant: f32 = 4.5;
+	var dec: i32 = 3;
+	// let d_box = sdRoundedBox(uni.iMouse.xy, v2(25., 40.) * 10., vec4<f32>(5.,5.,5.,5.) *10.0  );
+	let d_box = sdRoundedBox(v2(location) - uni.iMouse.xy, v2(100., 40.) , vec4<f32>(5.,5.,5.,5.)   );
+	vColor = mix( vColor, vec3<f32>(.8, .7, .5),  1.0 -  step(0.0, d_box,   ) ); 
+
+	SetColor(0., .2, .1);
+	WriteFloat(&vivant, 3, &dec );
+	
+}
+
+
 
 [[stage(compute), workgroup_size(8, 8, 1)]]
 fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
@@ -399,7 +430,7 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
 	pixelPos = fragCoord.xy;
 	mousePos = uni.iMouse.xy;
 	uv = (2. * fragCoord.xy / resolution.xy - 1.) * ratio;
-	mp = (2. * abs(uni.iMouse.xy) / resolution.xy - 1.) * ratio;
+	mp = (2. * abs(uni.iMouse.xy) / resolution.xy - 1.) * ratio; // Mouse position in uv coordinates
 	lp = (2. * abs(uni.iMouse.zw) / resolution.xy - 1.) * ratio;
 	vColor = mix(vColor, vec3<f32>(0.2), drawLineSegment(vec2<f32>(-99., 0.), vec2<f32>(99., 0.), 0.01));
 	vColor = mix(vColor, vec3<f32>(0.2), drawLineSegment(vec2<f32>(0., -99.), vec2<f32>(0., 99.), 0.01));
@@ -465,7 +496,14 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
 	WriteFPS();
 	let fragColor = vec4<f32>(vColor, 1.);
 
-	textureStore(texture, y_inverted_location, fragColor);
+	SetColor(0., 1., 1.);
+	WriteBufferValues(fragColor, location);
+
+	let fragColor = vec4<f32>(vColor, 1.);
+
+
+
+	textureStore(texture, y_inverted_location, toLinear(fragColor));
 
 } 
 

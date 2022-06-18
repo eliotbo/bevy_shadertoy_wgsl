@@ -829,12 +829,12 @@ impl FromWorld for MainImagePipeline {
                             },
                             count: None,
                         },
-                        // BindGroupLayoutEntry {
-                        //     binding: 7,
-                        //     visibility: ShaderStages::COMPUTE,
-                        //     ty: BindingType::Sampler(SamplerBindingType::Filtering),
-                        //     count: None,
-                        // },
+                        BindGroupLayoutEntry {
+                            binding: 7,
+                            visibility: ShaderStages::COMPUTE,
+                            ty: BindingType::Sampler(SamplerBindingType::Filtering),
+                            count: None,
+                        },
                     ],
                 });
 
@@ -961,10 +961,10 @@ fn queue_bind_group(
                 binding: 6,
                 resource: BindingResource::TextureView(&font_view.texture_view),
             },
-            // BindGroupEntry {
-            //     binding: 7,
-            //     resource: BindingResource::Sampler(&font_view.sampler),
-            // },
+            BindGroupEntry {
+                binding: 7,
+                resource: BindingResource::Sampler(&font_view.sampler),
+            },
         ],
     });
 
