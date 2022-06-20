@@ -106,7 +106,6 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
         P.M = mix(P.M, vec2<f32>(fluid_rho, 1.), 0.4);
     }
 
-
     if (length(P.X - R * vec2<f32>(0.45, 0.9)) < 20.) {
         // P.X = pos;
         // P.V = 0.5 * Dir(-PI * 0.25 + 0.3 * sin(0.3 * timeMult));

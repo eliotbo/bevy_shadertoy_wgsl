@@ -4,8 +4,10 @@ struct CommonUniform {
     iFrame: f32;
     iSampleRate: f32;
 
+    
     iMouse: vec4<f32>;
     iResolution: vec2<f32>;
+
     
 
     iChannelTime: vec4<f32>;
@@ -379,7 +381,6 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
         P.V = 0.5 * Dir(-PI * 0.75 + 0.3 * sin(0.4 * 2.0 * timeMult));
         P.M = mix(P.M, vec2<f32>(fluid_rho, 1.), 0.4);
     }
-
 
     if (length(P.X - R * vec2<f32>(0.45, 0.9)) < 20.) {
         // P.X = pos;
