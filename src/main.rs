@@ -23,8 +23,6 @@ use bevy::{
 use std::borrow::Cow;
 use std::fs; // not compatible with WASM -->
 
-mod debugger;
-
 mod texture_a;
 use texture_a::*;
 
@@ -90,9 +88,10 @@ pub struct FontImage {
     handle: Handle<Image>,
 }
 
-pub struct FramesAccum {
+pub struct ShadertoyResources {
     number_of_frames: u32,
     time_since_reset: f32,
+    include_debugger: bool,
 }
 
 fn main() {
@@ -117,9 +116,10 @@ fn main() {
             width: (960.0_f32 * BORDERS).floor() as u32,
             height: (600.0_f32 * BORDERS).floor() as u32,
         })
-        .insert_resource(FramesAccum {
+        .insert_resource(ShadertoyResources {
             number_of_frames: 0,
             time_since_reset: 0.0,
+            include_debugger: true,
         })
         .add_plugins(DefaultPlugins)
         .add_system(bevy::input::system::exit_on_esc_system)
@@ -146,6 +146,7 @@ fn setup(
     // mut shaders: ResMut<Assets<Shader>>,
     asset_server: Res<AssetServer>,
     windows: Res<Windows>,
+    st_res: Res<ShadertoyResources>,
     // mut custom_materials: ResMut<Assets<CustomMaterial>>,
 ) {
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
@@ -372,8 +373,8 @@ fn setup(
     // let example = "paint";
     // let example = "mixing_liquid";
     // let example = "paint_streams";
-    // let example = "paint_streams2";
-    let example = "debugger";
+    let example = "paint_streams2";
+    // let example = "debugger";
     // let example = "molecular_dynamics";
     // let example = "love_and_domination";
     // let example = "dancing_tree";
@@ -381,7 +382,8 @@ fn setup(
     // let example = "interactive_fluid_simulation";
     // let example = "liquid"; https://www.shadertoy.com/view/WtfyDj
 
-    let all_shader_handles: ShaderHandles = make_and_load_shaders2(example, &asset_server);
+    let all_shader_handles: ShaderHandles =
+        make_and_load_shaders2(example, &asset_server, st_res.include_debugger);
 
     commands.insert_resource(all_shader_handles);
 }
@@ -402,16 +404,20 @@ pub fn make_and_load_shaders(example: &str, asset_server: &Res<AssetServer>) -> 
     }
 }
 
-pub fn make_and_load_shaders2(example: &str, asset_server: &Res<AssetServer>) -> ShaderHandles {
+pub fn make_and_load_shaders2(
+    example: &str,
+    asset_server: &Res<AssetServer>,
+    include_debugger: bool,
+) -> ShaderHandles {
     // let image_shader_handle = asset_server.load(&format!("shaders/{}/image.wgsl", example));
     // let example_string = example.to_string();
     //
 
-    format_and_save_shader(example, "image");
-    format_and_save_shader(example, "buffer_a");
-    format_and_save_shader(example, "buffer_b");
-    format_and_save_shader(example, "buffer_c");
-    format_and_save_shader(example, "buffer_d");
+    format_and_save_shader(example, "image", include_debugger);
+    format_and_save_shader(example, "buffer_a", false);
+    format_and_save_shader(example, "buffer_b", false);
+    format_and_save_shader(example, "buffer_c", false);
+    format_and_save_shader(example, "buffer_d", false);
 
     let image_shader_handle = asset_server.load(&format!("./shaders/{}/image.wgsl", example));
     let texture_a_shader = asset_server.load(&format!("./shaders/{}/buffer_a.wgsl", example));
@@ -429,7 +435,7 @@ pub fn make_and_load_shaders2(example: &str, asset_server: &Res<AssetServer>) ->
 }
 
 // This function uses the std library and isn't compatible with wasm
-fn format_and_save_shader(example: &str, buffer_type: &str) {
+fn format_and_save_shader(example: &str, buffer_type: &str, include_debugger: bool) {
     let common_prelude = include_str!("./templates/common_prelude.wgsl");
 
     let template = match buffer_type {
@@ -442,6 +448,13 @@ fn format_and_save_shader(example: &str, buffer_type: &str) {
     };
 
     let mut shader_content = template.replace("{{COMMON_PRELUDE}}", common_prelude);
+
+    if include_debugger {
+        let debbuger_str = include_str!("./templates/debugger.wgsl");
+        shader_content = shader_content.replace("{{DEBUGGER}}", debbuger_str);
+    } else {
+        shader_content = shader_content.replace("{{DEBUGGER}}", "");
+    }
 
     let path_to_code_block = format!("./examples/{}/{}.wgsl", example, buffer_type);
     let path_to_common = format!("./examples/{}/common.wgsl", example);
@@ -514,61 +527,16 @@ fn make_new_texture(
     image_handle: &Handle<Image>,
     images: &mut ResMut<Assets<Image>>,
 ) {
-    if let Some(mut image) = images.get_mut(image_handle) {
+    if let Some(image) = images.get_mut(image_handle) {
         // There is no easy way to get the data from the gpu to the cpu, so when we
         // resize the image, we lose all the data. There might be a way to get the
         // data soon though.
-
-        // let new_buffer_length = canvas_size.width as i32 * canvas_size.height as i32;
-
-        // let delta_buffer = new_buffer_length - old_buffer_length;
-
-        // let mut new_buffer = image.data.clone();
-
-        // println!(
-        //     "old_buffer_length: {} vs dimensions: {}",
-        //     old_buffer_length, new_buffer_length
-        // );
-
-        // if delta_buffer >= 0 {
-        //     new_buffer.append(&mut vec![0; delta_buffer as usize]);
-        // } else {
-        //     new_buffer.truncate(124416000 as usize);
-        // }
-
-        // let mut new_image = Image::new(
-        //     Extent3d {
-        //         width: canvas_size.width,
-        //         height: canvas_size.height,
-        //         depth_or_array_layers: 1,
-        //     },
-        //     TextureDimension::D2,
-        //     // image.data.clone(),
-        //     new_buffer,
-        //     // &[0, 0, 0, 0],
-        //     TextureFormat::Rgba32Float,
-        // );
-
-        println!("size : {:?}", image.size());
-        let old_data = image.data.clone();
 
         image.resize(Extent3d {
             width: canvas_size.width,
             height: canvas_size.height,
             depth_or_array_layers: 1,
         });
-
-        // let old_data_length = old_data.len();
-
-        // let new_data_length = image.data.len();
-
-        // if old_data_length > new_data_length {
-        //     image.data = old_data[0..new_data_length].to_vec();
-        // } else {
-        //     for i in 0..old_buffer_length {
-        //         image.data[i as usize] = old_data[i as usize];
-        //     }
-        // }
     }
 }
 
@@ -587,7 +555,7 @@ fn update_common_uniform(
     texture_b: Res<TextureB>,
     texture_c: Res<TextureC>,
     texture_d: Res<TextureD>,
-    mut frames_accum: ResMut<FramesAccum>,
+    mut frames_accum: ResMut<ShadertoyResources>,
 ) {
     // update resolution
     for window_resize in window_resize_event.iter() {

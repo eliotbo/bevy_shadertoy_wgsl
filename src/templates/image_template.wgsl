@@ -33,7 +33,8 @@ var font_texture_sampler: sampler;
 //     textureStore(texture, location, color);
 // }
 
-{{COMMON}}
+{{DEBUGGER}}
 
+{{COMMON}}
 
 {{CODE_BLOCK}}
