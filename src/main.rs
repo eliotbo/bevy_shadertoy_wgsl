@@ -90,6 +90,11 @@ pub struct FontImage {
     handle: Handle<Image>,
 }
 
+pub struct FramesAccum {
+    number_of_frames: u32,
+    time_since_reset: f32,
+}
+
 fn main() {
     // // not sure this works on wasm
     // let mut wgpu_options = WgpuLimits::default();
@@ -104,12 +109,17 @@ fn main() {
         .insert_resource(WindowDescriptor {
             width: 960.,
             height: 600.,
+            cursor_visible: false,
             // present_mode: PresentMode::Immediate, // uncomment for unthrottled FPS
             ..default()
         })
         .insert_resource(CanvasSize {
             width: (960.0_f32 * BORDERS).floor() as u32,
             height: (600.0_f32 * BORDERS).floor() as u32,
+        })
+        .insert_resource(FramesAccum {
+            number_of_frames: 0,
+            time_since_reset: 0.0,
         })
         .add_plugins(DefaultPlugins)
         .add_system(bevy::input::system::exit_on_esc_system)
@@ -577,6 +587,7 @@ fn update_common_uniform(
     texture_b: Res<TextureB>,
     texture_c: Res<TextureC>,
     texture_d: Res<TextureD>,
+    mut frames_accum: ResMut<FramesAccum>,
 ) {
     // update resolution
     for window_resize in window_resize_event.iter() {
@@ -633,7 +644,7 @@ fn update_common_uniform(
                 common_uniform.i_mouse.z = -common_uniform.i_mouse.z.abs();
                 common_uniform.i_mouse.w = -common_uniform.i_mouse.w.abs();
             }
-            println!("mouse: {:?}", common_uniform.i_mouse);
+            // println!("mouse: {:?}", common_uniform.i_mouse);
         }
 
         // common_uniform.i_mouse.z = if mouse_button_input.pressed(MouseButton::Left) {
@@ -653,6 +664,16 @@ fn update_common_uniform(
     // update time
     common_uniform.i_time = time.seconds_since_startup() as f32;
     common_uniform.i_time_delta = time.delta_seconds() as f32;
+    frames_accum.time_since_reset += time.delta_seconds();
+    frames_accum.number_of_frames += 1;
+    let fps_refresh_time = 0.5; // seconds
+
+    if frames_accum.time_since_reset > fps_refresh_time {
+        common_uniform.i_sample_rate =
+            frames_accum.number_of_frames as f32 / frames_accum.time_since_reset;
+        frames_accum.time_since_reset = 0.0;
+        frames_accum.number_of_frames = 0;
+    }
 
     common_uniform.i_frame += 1.0;
 }

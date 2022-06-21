@@ -1,11 +1,34 @@
+// Why are the characters so pixelated? 
+// One possible reason is that we are in a compute shader and the textures are not
+// filtered.
+
 type ivec2 = vec2<i32>;
 type v2 = vec2<f32>;
-let FONT_SPACE: f32 = 0.5;
+
+let backColor: vec3<f32> = vec3<f32>(0.2, 0.2, 0.2);
+
+var<private> R: vec2<f32>;
 var<private> uv: vec2<f32> ;
 var<private> tp: vec2<f32> ;
-var<private> R: vec2<f32>;
-let font_texture_size: vec2<f32> = vec2<f32>(1023.0, 1023.0);
+var<private> alignment: vec4<f32>; // north, east, south, west
+var<private> font_size: f32;
+var<private> dotColor: vec3<f32> = vec3<f32>(0.5, 0.5, 0.);
+var<private> drawColor: vec3<f32> = vec3<f32>(1., 1., 0.);
+var<private> vColor: vec3<f32> = backColor;
+var<private> aspect: f32 = 1.;
+var<private> pixelPos: vec2<f32> = vec2<f32>(0., 0.);
+var<private> mousePos: vec2<f32> = vec2<f32>(200., 200.);
+var<private> lp: vec2<f32> = vec2<f32>(0.5, 0.5);
+var<private> mp: vec2<f32> = vec2<f32>(0.5, 0.5);
+var<private> resolution: vec2<f32>;
 
+
+let FONT_SPACE: f32 = 0.5;
+let headColor: vec3<f32> = vec3<f32>(0.9, 0.6, 0.2);
+let mpColor: vec3<f32> = vec3<f32>(0.99, 0.99, 0.);
+let mxColor: vec3<f32> = vec3<f32>(1., 0., 0.);
+let myColor: vec3<f32> = vec3<f32>(0., 1., 0.);
+let font_png_size: vec2<f32> = vec2<f32>(1023.0, 1023.0);
 
 
 fn char(ch: i32) -> f32 {
@@ -22,8 +45,8 @@ fn char(ch: i32) -> f32 {
     //                  vec2<f32>(0.0, 1.0));
 
 	// using textureLoad without sampler
-    let q1 = ivec2(font_texture_size  * q );
-	let y_inverted_q1 = ivec2(q1.x, i32(font_texture_size.y) - q1.y);
+    let q1 = ivec2(font_png_size  * q );
+	let y_inverted_q1 = ivec2(q1.x, i32(font_png_size.y) - q1.y);
 
 	var f: vec4<f32> = textureLoad(font_texture, y_inverted_q1 , 0);
 
@@ -43,9 +66,14 @@ fn char(ch: i32) -> f32 {
 } 
 
 fn SetTextPosition(x: f32, y: f32)  {
-	tp = 10. * uv;
+	tp =  10. * uv;
 	tp.x = tp.x + 17. - x;
 	tp.y = tp.y - 9.4 + y;
+} 
+
+fn SetTextPositionAbs(x: f32, y: f32)  {
+	tp.x = 10. * uv.x - x;
+	tp.y = 10. * uv.y - y;
 } 
 
 fn drawFract(value: ptr<function, f32>, digits:  ptr<function, i32>) -> f32 {
@@ -109,6 +137,50 @@ fn drawInt(value: ptr<function, i32>,  minDigits: ptr<function, i32>) -> f32 {
 	return c;
 } 
 
+fn drawIntBackwards(value: ptr<function, i32>,  minDigits: ptr<function, i32>) -> f32 {
+	var c: f32 = 0.;
+	let original_value: i32 = *value;
+
+	if (*value < 0) {
+		*value = -*value;
+		if (*minDigits < 1) {		
+			*minDigits = 1;
+		} else { 
+			*minDigits = *minDigits - 1;
+		}
+		// tp.x = tp.x + (FONT_SPACE);
+		// c = c + (char(45));
+		
+
+	}
+	var fn2: i32 = *value;
+	var digits: i32 = 1;
+
+	for (var ni: i32 = 0; ni < 10; ni = ni + 1) {
+		fn2 = fn2 / (10);
+		if (fn2 == 0) {		break; }
+		digits = digits + 1;
+	}
+
+	digits = maxInt(*minDigits, digits);
+	// tp.x = tp.x - (0.5 * f32(digits));
+
+	for (var ni: i32 = digits - 1; ni < 11; ni = ni - 1) {
+		tp.x = tp.x + (0.5);
+		c = c + (char(48 + *value % 10));
+		*value = *value / (10);
+		if (ni == 0) {		break; }
+	}
+
+	if (original_value < 0) {
+		tp.x = tp.x + (FONT_SPACE);
+		c = c + (char(45));
+	}
+
+	// tp.x = tp.x + (0.5 * f32(digits));
+	return c;
+} 
+
 // fn drawFloat(value: ptr<function, f32>, prec: ptr<function, i32>, maxDigits: i32) -> f32 {
 fn drawFloat(val: f32, prec: ptr<function, i32>, maxDigits: i32) -> f32 {
 	// in case of 0.099999..., round up to 0.1000000
@@ -145,36 +217,19 @@ fn drawFloat_f32_prec(value: f32, prec: ptr<function, i32>) -> f32 {
 	return drawFloat(value, prec, 2);
 } 
 
+fn drawInt_i32_back(value: ptr<function, i32>) -> f32 {
+    var one: i32 = 1;
+	return drawIntBackwards(value, &one);
+} 
+
 fn drawInt_i32(value: ptr<function, i32>) -> f32 {
     var one: i32 = 1;
 	return drawInt(value, &one);
 } 
 
-fn drawLineSegment(A: vec2<f32>, B: vec2<f32>, r: f32) -> f32 {
-	let g: vec2<f32> = B - A;
-	let h: vec2<f32> = uv - A;
-	let d: f32 = length(h - g * clamp(dot(g, h) / dot(g, g), 0., 1.));
-	return smoothStep(r, 0.5 * r, d);
-} 
 
-fn circle(pos: vec2<f32>, radius: f32, halo: f32) -> f32 {
-	return clamp(halo * (radius - length(uv - pos)), 0., 1.);
-} 
 
-let headColor: vec3<f32> = vec3<f32>(0.9, 0.6, 0.2);
-let backColor: vec3<f32> = vec3<f32>(0.15, 0.1, 0.1);
-let mpColor: vec3<f32> = vec3<f32>(0.99, 0.99, 0.);
-let mxColor: vec3<f32> = vec3<f32>(1., 0., 0.);
-let myColor: vec3<f32> = vec3<f32>(0., 1., 0.);
-var<private> dotColor: vec3<f32> = vec3<f32>(0.5, 0.5, 0.);
-var<private> drawColor: vec3<f32> = vec3<f32>(1., 1., 0.);
-var<private> vColor: vec3<f32> = backColor;
-var<private> aspect: f32 = 1.;
-var<private> pixelPos: vec2<f32> = vec2<f32>(0., 0.);
-var<private> mousePos: vec2<f32> = vec2<f32>(200., 200.);
-var<private> lp: vec2<f32> = vec2<f32>(0.5, 0.5);
-var<private> mp: vec2<f32> = vec2<f32>(0.5, 0.5);
-var<private> resolution: vec2<f32>;
+
 
 fn SetColor(red: f32, green: f32, blue: f32)  {
 	drawColor = vec3<f32>(red, green, blue);
@@ -190,13 +245,12 @@ fn WriteFloat(fValue: f32, maxDigits: i32, decimalPlaces: ptr<function, i32>)  {
 
 fn WriteFloatBox(
 	fValue: f32, 
-	maxDigits: i32, decimalPlaces: 
-	ptr<function, i32>, 
+	maxDigits: i32, 
+	decimalPlaces: i32, 
 	alpha: f32
 )  {
-	// var value: ptr<function, f32> = fValue;
-	// vColor = mix(vColor, drawColor, drawFloat_f32_prec(fValue, decimalPlaces));
-	vColor = mix(vColor, drawColor, drawFloat(fValue, decimalPlaces, maxDigits) * alpha);
+	var decs = decimalPlaces;
+	vColor = mix(vColor, drawColor, drawFloat(fValue, &decs, maxDigits) * alpha);
 	tp.x = tp.x - (FONT_SPACE);
 ;
 } 
@@ -207,46 +261,19 @@ fn WriteInteger(iValue: ptr<function, i32>)  {
 
 } 
 
-// TODO: implement date in common uniform
-fn WriteDate()  {
-	// var c: f32 = 0.;
-    // var datex:  i32 = i32(uni.iDate.x);
-	// c = c + (drawInt_i32(&datex));
-	// c = c + (char(45));
-	// tp.x = tp.x - (FONT_SPACE);
+fn WriteIntegerBack(iValue: ptr<function, i32>)  {
+	vColor = mix(vColor, drawColor, drawInt_i32_back(iValue));
+	tp.x = tp.x + (FONT_SPACE);
 
-    // var datey: i32 = i32(uni.iDate.y + 1.);
-	// c = c + (drawInt_i32(&datey));
-	// c = c + (char(45));
-	// tp.x = tp.x - (FONT_SPACE);
-
-    // var datez: i32 = i32(uni.iDate.z);
-	// c = c + (drawInt_i32(&datez));
-	// tp.x = tp.x - (FONT_SPACE);
-	// vColor = mix(vColor, drawColor, c);
 } 
 
-// TODO: implement date in common uniform
-fn WriteTime()  {
-// 	var c: f32 = 0.;
-// 	c = c + (drawInt(i32(mod(uni.iDate.w / 3600., 24.))));
-// 	c = c + (char(58));
-// 	tp.x = tp.x - (FONT_SPACE);
-// ;
-// 	c = c + (drawInt(i32(mod(uni.iDate.w / 60., 60.)), 2));
-// 	c = c + (char(58));
-// 	tp.x = tp.x - (FONT_SPACE);
-// ;
-// 	c = c + (drawInt(i32(mod(uni.iDate.w, 60.)), 2));
-// 	tp.x = tp.x - (FONT_SPACE);
-// 	vColor = mix(vColor, drawColor, c);
-} 
+
 
 fn WriteFPS()  {
 	var fps: f32 = f32(uni.iSampleRate);
 	SetColor(0.8, 0.6, 0.3);
 	var max_digits_one = 1;
-	WriteFloat(fps, 6, &max_digits_one);
+	WriteFloat(fps, 5, &max_digits_one);
 	var c: f32 = 0.;
 	c = c + (char(102));
 	tp.x = tp.x - (FONT_SPACE);
@@ -261,161 +288,42 @@ fn WriteFPS()  {
 	vColor = mix(vColor, drawColor, c);
 } 
 
-fn WriteMousePos(ytext: f32, mPos: vec2<f32>)  {
+fn WriteMousePos(mPos: vec2<f32>, y_pos: f32)  {
 	let digits: i32 = 3;
-	let radius: f32 = resolution.x / 200.;
+	let radius: f32 = resolution.x / 400.;
 	if (uni.iMouse.z > 0.) { dotColor = mpColor; }
 	let r: f32 = length(abs(mPos.xy) - pixelPos) - radius;
-	vColor = vColor + (mix(vec3<f32>(0.), dotColor, 1. - clamp(r, 0., 1.)));
-	SetTextPosition(1., ytext);
+	// vColor = vColor + (mix(vec3<f32>(0.), dotColor, 1. - clamp(r, 0., 1.)));
+
 	var max_digits_three: i32 = 3;
 	var mposxi: i32 = i32(mPos.x);
 	var mposyi: i32 = i32(mPos.y);
 
 	var mposx: f32 = (mPos.x);
 	var mposy: f32 = (mPos.y);
-	if (ytext == 7.) {
-		drawColor = mxColor;
+
+
+	let x_pos = alignment.y - 1. * FONT_SPACE;
 		
-		WriteFloat(mposx, 6, &max_digits_three);
-		tp.x = tp.x - (FONT_SPACE);
+	SetTextPositionAbs(
+		 x_pos,
+		 y_pos,
+	);
 
-		drawColor = myColor;
-		WriteFloat(mposy, 6, &max_digits_three);
-	} else { 
+	drawColor = myColor;
+	WriteIntegerBack(&mposyi);
 
-		drawColor = mxColor;
-		
-		WriteInteger(&mposxi);
-		tp.x = tp.x - (FONT_SPACE);
-		
-		drawColor = myColor;
-		WriteInteger(&mposyi);
-	}
+	SetTextPositionAbs(
+		 x_pos - 7. *  FONT_SPACE,
+		 y_pos,
+	);
+
+	drawColor = mxColor;
+
+	WriteIntegerBack(&mposxi);
+
 } 
 
-fn WriteText1()  {
-	SetTextPosition(1., 1.);
-	var c: f32 = 0.;
-	c = c + (char(28));
-	tp.x = tp.x - (FONT_SPACE);
-
-	tp.x = tp.x - (FONT_SPACE);
-	c = c + (char(68));
-	tp.x = tp.x - (FONT_SPACE);
-
-	c = c + (char(97));
-	tp.x = tp.x - (FONT_SPACE);
-
-	c = c + (char(116));
-	tp.x = tp.x - (FONT_SPACE);
-
-	c = c + (char(97));
-	tp.x = tp.x - (FONT_SPACE);
-
-	tp.x = tp.x - (FONT_SPACE);
-	c = c + (char(50));
-	tp.x = tp.x - (FONT_SPACE);
-
-	tp.x = tp.x - (FONT_SPACE);
-	tp.x = tp.x - (FONT_SPACE);
-	c = c + (char(118));
-	tp.x = tp.x - (FONT_SPACE);
-
-	c = c + (char(49));
-	tp.x = tp.x - (FONT_SPACE);
-
-	c = c + (char(46));
-	tp.x = tp.x - (FONT_SPACE);
-
-	vColor = vColor + (c * headColor);
-} 
-
-fn WriteWebGL()  {
-	SetTextPosition(1., 3.);
-	var c: f32 = 0.;
-	c = c + (char(87));
-	tp.x = tp.x - (FONT_SPACE);
-
-	c = c + (char(101));
-	tp.x = tp.x - (FONT_SPACE);
-
-	c = c + (char(98));
-	tp.x = tp.x - (FONT_SPACE);
-
-	c = c + (char(71));
-	tp.x = tp.x - (FONT_SPACE);
-
-	c = c + (char(76));
-	tp.x = tp.x - (FONT_SPACE);
-
-	c = c + (char(50));
-	tp.x = tp.x - (FONT_SPACE);
-
-	vColor = vColor + (c * headColor);
-} 
-
-fn WriteTestValues()  {
-	var c: f32 = 0.;
-	SetTextPosition(1., 12.);
-
-	var t1: i32 = 123;
-	var d1: i32 = 8;
-	c = c + (drawInt(&t1, &d1));
-	tp.x = tp.x - (FONT_SPACE);
-
-	var t2: i32 = -1234567890;
-	c = c + (drawInt_i32(&t2));
-	tp.x = tp.x - (FONT_SPACE);
-
-	var t3: i32 = 0;
-	c = c + (drawInt_i32(&t3));
-	tp.x = tp.x - (FONT_SPACE);
-
-	var t4: i32 = -1;
-	c = c + (drawInt_i32(&t4));
-	tp.x = tp.x - (FONT_SPACE);
-
-	var f1: f32 = -123.456;
-	var p1: i32 = 3;
-	c = c + (drawFloat_f32_prec(f1, &p1));
-	SetTextPosition(1., 13.);
-
-	var t1: i32 = -123;
-	var d1: i32 = 8;
-	c = c + (drawInt(&t1, &d1));
-	tp.x = tp.x - (FONT_SPACE);
-
-	var t1: i32 = 1234567890;
-	var d1: i32 = 11;
-	c = c + (drawInt(&t1, &d1));
-
-	var f1: f32 = -123.456;
-	var p1: i32 = 3;
-	var d1: i32 = 0;
-	c = c + (drawFloat(f1, &p1, 0));
-	tp.x = tp.x - (FONT_SPACE);
-
-	// c = c + (drawFloat(1., 0, 0));
-	// tp.x = tp.x - (FONT_SPACE);
-
-	// c = c + (drawFloat_f32_prec(654.321, 3));
-	// tp.x = tp.x - (FONT_SPACE);
-
-	// c = c + (drawFloat_f32_prec(999.9, 1));
-	// tp.x = tp.x - (FONT_SPACE);
-
-	// c = c + (drawFloat_f32_prec(pow(10., 3.), 1));
-
-	// c = c + (drawFloat_f32_prec(pow(10., 6.), 1));
-
-	SetTextPosition(1., 14.);
-
-	var f1: f32 = exp2(-126.);
-	var p1: i32 = 60;
-	c = c + (drawFloat_f32_prec(f1, &p1));
-	vColor = vColor + (c * headColor);
-} 
 
 fn sdRoundedBox(p: vec2<f32>, b: vec2<f32>, r: vec4<f32>) -> f32 {
   var x = r.x;
@@ -427,186 +335,251 @@ fn sdRoundedBox(p: vec2<f32>, b: vec2<f32>, r: vec4<f32>) -> f32 {
   return min(max(q.x, q.y), 0.) + length(max(q, vec2<f32>(0.))) - x;
 }
 
+
+
+fn WriteRGBAValues(
+	location: vec2<i32>, 
+	value: vec4<f32>, 
+	screen_poz: vec2<f32>,
+	alpha: f32,
+ )  {
+	let poz = screen_poz / uni.iResolution * 20. * vec2<f32>(aspect, 1.0);
+	let window_ajusted = uni.iResolution / v2(960., 600.);
+
+	let box_pos = vec2<f32>(alignment.w, alignment.x - FONT_SPACE ) / 10.;
+	// let box_pos = mp;
+
+	// // box location follows mouse position
+	// let box_location = v2(
+	// 	uni.iMouse.x + 100. * window_ajusted.x /  ( aspect / 1.6 ) , 
+	// 	uni.iMouse.y - 48. * window_ajusted.y
+	// );
+
+
+	let box_location  = v2(
+		100. * window_ajusted.x /  ( aspect / 1.6 ) , 
+		uni.iResolution.y - 60. * window_ajusted.y,
+	);
+	
+	let inverted_screen_poz = vec2<f32>(screen_poz.x,  -screen_poz.y) ; // / vec2<f32>(aspect, 1.) ;
+
+	let d_box = sdRoundedBox(
+		 vec2<f32>(location) - box_location - inverted_screen_poz, 
+		 vec2<f32>(73. /  ( aspect / 1.6 ), 75.) * window_ajusted, 
+		vec4<f32>(5.,5.,5.,5.)  * 5.0 
+	);
+
+	// let alpha = 0.225;
+	let decimal_places = 3;
+	SetColor(1., 1., 1.);
+	var c: f32 = 0.;
+	let lspace = 0.8;
+
+	let bg_color = vec3<f32>(.8, .7, .9);
+	vColor = mix( vColor, bg_color,  (1.0 -  step(0.0, d_box)) * alpha ); 
+
+	// red
+	SetTextPosition(
+		10. *  (box_pos.x +1. + lspace) + poz.x, 
+		10. * (-box_pos.y +1.) - 0.0 + poz.y
+	) ;
+	c = c + (char(114)); // r
+	tp.x = tp.x - (FONT_SPACE);
+	c = c + (char(58)); // colon
+	tp.x = tp.x - (FONT_SPACE);
+	WriteFloatBox(value.r, 3, decimal_places, alpha );
+
+	// green
+	SetTextPosition(
+		10. *  ((box_pos.x +1. + lspace)) + poz.x, 
+		10. * (-box_pos.y +1. ) + 1.0 + poz.y,
+	) ;
+	c = c + (char(103)); // g
+	tp.x = tp.x - (FONT_SPACE);
+	c = c + (char(58)); // colon
+	tp.x = tp.x - (FONT_SPACE);
+	WriteFloatBox(value.g, 3, decimal_places, alpha );
+
+	// blue
+	SetTextPosition(
+		10. *  (box_pos.x +1. + lspace) + poz.x, 
+		10. * (-box_pos.y +1. ) + 2.0 + poz.y,
+		) ;
+	c = c + (char(98)); // b
+	tp.x = tp.x - (FONT_SPACE);
+	c = c + (char(58)); // colon
+	tp.x = tp.x - (FONT_SPACE);
+	WriteFloatBox(value.b, 4, decimal_places, alpha );
+
+	// alpha
+	SetTextPosition(
+		10. *  (box_pos.x +1. + lspace) + poz.x, 
+		10. * (-box_pos.y +1. ) + 3.0 + poz.y,
+	) ;
+	c = c + (char(97)); // a
+	tp.x = tp.x - (FONT_SPACE);
+	c = c + (char(58)); // colon
+	tp.x = tp.x - (FONT_SPACE);
+	WriteFloatBox(value.a, 4, decimal_places, alpha );
+
+	vColor = mix(vColor, drawColor, c * alpha);
+}
+
+fn sdSegment(p: vec2<f32>, a: vec2<f32>, b: vec2<f32>) -> f32 {
+    let pa = p - a;
+    let ba = b - a;
+    let h = clamp(dot(pa, ba) / dot(ba, ba), 0., 1.);
+    return length(pa - ba * h);
+}
+
 fn ring(pos: vec2<f32>, radius: f32, thick: f32) -> f32 {
 	return mix(1., 0., smoothStep(thick, thick + 0.01, abs(length(uv - pos) - radius)));
 } 
 
-fn WriteBufferValues(location: vec2<i32>)  {
-	// SetTextPosition(5. * (mp.x +1.0) * aspect  , 10. * (mp.y +0.5)) ;
-	
-	// SetTextPosition(15., 5.);
-	let inverted_y_mouse_location = vec2<i32>(v2(uni.iMouse.x, uni.iResolution.y - uni.iMouse.y));
-	let value: vec4<f32> = textureLoad(texture, inverted_y_mouse_location);
-
-	// let d_box = sdRoundedBox(uni.iMouse.xy, v2(25., 40.) * 10., vec4<f32>(5.,5.,5.,5.) *10.0  );
-	
-	let window_ajusted = uni.iResolution / v2(960., 600.);
-
-	let box_location = v2(
-		uni.iMouse.x + 105. * window_ajusted.x, 
-		uni.iMouse.y + 10. * window_ajusted.y
-	);
-
-	let d_box = sdRoundedBox(
-		v2(location) - box_location, 
-		v2(75., 75.) * window_ajusted, 
-		vec4<f32>(5.,5.,5.,5.)   
-	);
-	
-	let alpha = 0.225;
-	let bg_color = vec3<f32>(.8, .7, .9);
-	vColor = mix( vColor, bg_color,  (1.0 -  step(0.0, d_box)) * alpha ); 
-
-	let decimal_places = 3;
-	SetColor(1., 1., 1.);
-	var c: f32 = 0.;
-	let lspace = 0.2;
-
-	var val1: f32 = 4.51;
-	var dec1: i32 = decimal_places;
-
-	SetTextPosition(10. *  ((mp.x +1. + lspace) + 1. / aspect), 10. * (-mp.y +1.) - 2.0) ;
-	c = c + (char(114));
-	tp.x = tp.x - (FONT_SPACE);
-	c = c + (char(58));
-	tp.x = tp.x - (FONT_SPACE);
-	WriteFloatBox(value.r, 3, &dec1, alpha );
-
-	var val2: f32 = 0.534;
-	var dec2: i32 = decimal_places;
-
-	SetTextPosition(10. *  ((mp.x +1. + lspace) + 1. / aspect), 10. * (-mp.y +1. ) - 1.0 ) ;
-	c = c + (char(103));
-	tp.x = tp.x - (FONT_SPACE);
-	c = c + (char(58));
-	tp.x = tp.x - (FONT_SPACE);
-	WriteFloatBox(value.g, 3, &dec2, alpha );
-
-	var dec3: i32 = decimal_places;
-	var val3: f32 = 0.154;
-
-	SetTextPosition(10. *  ((mp.x +1. + lspace) + 1. / aspect), 10. * (-mp.y +1. ) - 0.0) ;
-	c = c + (char(98));
-	tp.x = tp.x - (FONT_SPACE);
-	c = c + (char(58));
-	tp.x = tp.x - (FONT_SPACE);
-	WriteFloatBox(value.b, 4, &dec3, alpha );
-
-	var dec4: i32 = decimal_places;
-	var val4: f32 = 0.154;
-
-	SetTextPosition(10. *  ((mp.x +1. + lspace) + 1. / aspect), 10. * (-mp.y +1. ) + 1.0) ;
-	c = c + (char(97));
-	tp.x = tp.x - (FONT_SPACE);
-	c = c + (char(58));
-	tp.x = tp.x - (FONT_SPACE);
-	WriteFloatBox(value.a, 4, &dec3, alpha );
-
-	vColor = mix(vColor, drawColor, c * alpha);
-	
+fn sdCircle(p: vec2<f32>, c: vec2<f32>, r: f32) -> f32 {
+    let d = length(p - c);
+    return d - r;
 }
 
+fn draw_ring(location: vec2<i32>) {
+	let mouse_click_poz = vec2<f32>(abs(uni.iMouse.z) , abs(uni.iMouse.w));
+
+	let alpha = 0.5;
+	let ring_dist = sdCircle(vec2<f32>(location) , mouse_click_poz, 3.0);
+	let d = smoothStep(0.5, 2.5, abs(ring_dist - 1.));
+	vColor = mix(vColor, headColor,   (1. - d) * alpha );
+}
+
+fn draw_crossair(location: vec2<i32>)  {
+
+	let start = 5.0;
+	let end = 20.;
+	let segment1 = sdSegment(
+		vec2<f32>(location) - uni.iMouse.xy, 
+		vec2<f32>(start, 0.), 
+		vec2<f32>(end, 0.)
+	);
+
+	let segment2 = sdSegment(
+		vec2<f32>(location) - uni.iMouse.xy, 
+		vec2<f32>(-start, 0.), 
+		vec2<f32>(-end, 0.)
+	);
+
+	let segment3 = sdSegment(
+		vec2<f32>(location) - uni.iMouse.xy, 
+		vec2<f32>(0., start), 
+		vec2<f32>(0., end)
+	);
+
+	let segment4 = sdSegment(
+		vec2<f32>(location) - uni.iMouse.xy, 
+		vec2<f32>(0., -start), 
+		vec2<f32>(0., -end)
+	);
+
+	var alpha = 0.75;
+	if (uni.iMouse.z > 0.) {
+		alpha = 1.0;
+	}
+
+	let d = smoothStep(0.5, 1.5, segment1);
+	vColor = mix(vColor, headColor, (1.0 -  d) * alpha );
+
+	let d = smoothStep(0.5, 1.5, segment2);
+	vColor = mix(vColor, headColor, (1.0 -  d) * alpha );
+
+	let d = smoothStep(0.5, 1.5, segment3);
+	vColor = mix(vColor, headColor, (1.0 -  d) * alpha );
+
+	let d = smoothStep(0.5, 1.5, segment4);
+	vColor = mix(vColor, headColor, (1.0 -  d) * alpha );
+}
+
+fn show_debug_info(location: vec2<i32>) -> vec4<f32> {    
 
 
-[[stage(compute), workgroup_size(8, 8, 1)]]
-fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
-    let R: vec2<f32> = uni.iResolution.xy;
-    let y_inverted_location = vec2<i32>(i32(invocation_id.x), i32(R.y) - i32(invocation_id.y));
-    let location = vec2<i32>(i32(invocation_id.x), i32(invocation_id.y));
-    
-    // // let uv =  vec2<f32> (location) / R;
-    // // let color = textureSample(font_texture, font_texture_sampler, uv);
-    // var color = textureLoad(font_texture, location, 0);
-    // // color.x = 0.;
-    // color.y = color.x;
-    // color.z = color.x;
-
-    // textureStore(texture, location, color);
-
-	// var fragColor: vec4<f32>;
 	var fragCoord = vec2<f32>(f32(location.x), f32(location.y) );
 
 	resolution = uni.iResolution.xy;
 	aspect = resolution.x / resolution.y;
+
 	let ratio: vec2<f32> = vec2<f32>(aspect, 1.);
 	pixelPos = fragCoord.xy;
 	mousePos = uni.iMouse.xy;
 	uv = (2. * fragCoord.xy / resolution.xy - 1.) * ratio;
+
+	alignment = 10. * vec4<f32>(
+		1.,      // North
+		aspect,  // East
+		-1.,     // South
+		-aspect, // West
+	);
+
 	mp = (2. * abs(uni.iMouse.xy) / resolution.xy - 1.) * ratio; // Mouse position in uv coordinates
-	lp = (2. * abs(uni.iMouse.zw) / resolution.xy - 1.) * ratio;
-	vColor = mix(vColor, vec3<f32>(0.2), drawLineSegment(vec2<f32>(-99., 0.), vec2<f32>(99., 0.), 0.1));
-	vColor = mix(vColor, vec3<f32>(0.2), drawLineSegment(vec2<f32>(0., -99.), vec2<f32>(0., 99.), 0.1));
-	// WriteText1();
-	// WriteWebGL();
-	// WriteTestValues();
-	WriteMousePos(5., uni.iMouse.zw);
-	WriteMousePos(6., uni.iMouse.xy);
-	var radius: f32 = length(mp - lp);
-	SetColor(0.9, 0.9, 0.2);
+
+	WriteMousePos(uni.iMouse.zw, alignment.z + 2.0 * FONT_SPACE); // Click position
+	WriteMousePos(uni.iMouse.xy, alignment.z + 0.2 * FONT_SPACE); // Current mouse position
+
 	var c: f32 = 0.;
-	tp.x = tp.x - (FONT_SPACE);
-	c = c + (char(114));
-	tp.x = tp.x - (FONT_SPACE);
 
-	c = c + (char(61));
-	tp.x = tp.x - (FONT_SPACE);
+	SetTextPositionAbs(
+		 alignment.y -      FONT_SPACE,
+		 alignment.x - 2. * FONT_SPACE,
+	);
 
-	vColor = vColor + (c * drawColor);
-
-	var max_digits_two: i32 = 2;
-	WriteFloat(radius, 6, &max_digits_two);
-
-	if (uni.iMouse.z > 0.) {
-		let intensity: f32 = ring(lp, radius, 0.01);
-		drawColor = vec3<f32>(1.5, 0.4, 0.5);
-		vColor = mix(vColor, drawColor, intensity * 0.2);
-	}
-	SetTextPosition(27., 1.);
 	SetColor(0.8, 0.8, 0.8);
 	var resx = i32(uni.iResolution.x);
 	var resy = i32(uni.iResolution.y);
-	WriteInteger(&resx);
+
+
+	WriteIntegerBack(&resx);
 	c = c + (char(28));
-	tp.x = tp.x - (FONT_SPACE);
-;
-	WriteInteger(&resy);
-	SetTextPosition(1., 16.);
+	tp.x = tp.x + 0. * (FONT_SPACE);
+	WriteIntegerBack(&resy);
+
+
+	SetTextPositionAbs(
+		 alignment.w - 1. * FONT_SPACE,
+		 alignment.z - 0. * FONT_SPACE,
+	);
+
+	WriteFPS();
 	SetColor(0.9, 0.7, 0.8);
 
-	// // TODO: keyboard
-	// for (var ci: i32 = 0; ci < 256; ci = ci + 1) {	
-	// 	if (textureLoad(BUFFER_iChannel3, vec2<i32>(vec2<i32>(ci, 0))).x > 0.) { 
-	// 		WriteInteger(&ci); 
-	// 	}
-	// }
-
-	SetTextPosition(1., 19.);
-	SetColor(0.9, 0.9, 0.4);
-	WriteDate();
-	tp.x = tp.x - (FONT_SPACE);
-	SetColor(1., 0., 1.);
-	WriteTime();
-	tp.x = tp.x - (FONT_SPACE);
-	SetColor(0.4, 0.7, 0.4);
-	var iframe: i32 = i32(uni.iFrame);
-	WriteInteger(&iframe);
-	tp.x = tp.x - (FONT_SPACE);
-	SetColor(0., 1., 1.);
-	var itime = uni.iTime;
-	WriteFloat(itime, 6, &max_digits_two);
-	tp.x = tp.x - (FONT_SPACE);
-	WriteFPS();
-
 	let fragColor = vec4<f32>(vColor, 1.);
 
+	let poz = vec2<f32>(0., uni.iResolution.y / 2.);
 	
-	WriteBufferValues( location);
+	// // RGBA probe labels follow mouse
+	// let poz = vec2<f32>(uni.iMouse.x , uni.iResolution.y - uni.iMouse.y);
+	
+	let inverted_y_mouse_location = vec2<i32>(v2(uni.iMouse.x, uni.iResolution.y - uni.iMouse.y));
+	let value: vec4<f32> = textureLoad(texture, inverted_y_mouse_location);
+	WriteRGBAValues(location, value, poz, 0.5);
+
+	let inverted_y_mouseclick_location = vec2<i32>(v2(abs(uni.iMouse.z), uni.iResolution.y - abs(uni.iMouse.w)));
+	let value2: vec4<f32> = textureLoad(texture, inverted_y_mouseclick_location);
+	WriteRGBAValues(location, value2, vec2<f32>(0.), 0.25);
+
+	draw_crossair(location);
+
+	draw_ring(location);
 
 	let fragColor = vec4<f32>(vColor, 1.);
 
-
-
-	textureStore(texture, y_inverted_location, toLinear(fragColor));
-
+	return fragColor;
 } 
+
+
+[[stage(compute), workgroup_size(8, 8, 1)]]
+fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
+    R = uni.iResolution.xy;
+    let location = vec2<i32>(i32(invocation_id.x), i32(invocation_id.y));
+
+	let fragColor = show_debug_info(location);
+
+	let y_inverted_location = vec2<i32>((location.x), i32(R.y) - (location.y));
+	textureStore(texture, y_inverted_location, toLinear(fragColor));
+}
 
