@@ -84,8 +84,9 @@ pub struct CanvasSize {
 }
 
 #[derive(Clone)]
-pub struct FontImage {
-    handle: Handle<Image>,
+pub struct ShadertoyTextures {
+    font_texture_handle: Handle<Image>,
+    rgba_noise_256_handle: Handle<Image>,
 }
 
 pub struct ShadertoyResources {
@@ -168,8 +169,6 @@ fn setup(
 
     commands.insert_resource(MainImage(image.clone()));
 
-    let texture_handle: Handle<Image> = asset_server.load("textures/font.png");
-
     commands.spawn_bundle(SpriteBundle {
         sprite: Sprite {
             custom_size: Some(Vec2::new(
@@ -189,8 +188,11 @@ fn setup(
         ..default()
     });
 
-    commands.insert_resource(FontImage {
-        handle: texture_handle,
+    let font_texture_handle: Handle<Image> = asset_server.load("textures/font.png");
+    let rgba_noise_256_handle: Handle<Image> = asset_server.load("textures/rgba_noise_256.png");
+    commands.insert_resource(ShadertoyTextures {
+        font_texture_handle,
+        rgba_noise_256_handle,
     });
 
     let window = windows.primary();
@@ -288,99 +290,22 @@ fn setup(
 
     commands.insert_resource(TextureD(texture_d));
 
-    // //
-    // //
-    // //
-    // // Font Texture
-    //     let mut font_texture = Image::new_fill(
-    //     Extent3d {
-    //         width: canvas_size.width,
-    //         height: canvas_size.height,
-    //         depth_or_array_layers: 1,
-    //     },
-    //     TextureDimension::D2,
-    //     // &[255, 255, 255, 255],
-    //     &[0, 0, 0, 0],
-    //     TextureFormat::Rgba32Float,
-    // );
+    // TODO
+    // rain: https://www.shadertoy.com/view/wdGSzw
+    // fix clouds
 
-    //             texture: asset_server.load(
-    //             "models/FlightHelmet/FlightHelmet_Materials_LensesMat_OcclusionRoughMetal.png",
-    //         ),
-
-    // commands.spawn().insert_bundle(MaterialMeshBundle {
-    //     mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
-    //     transform: Transform::from_xyz(0.0, 0.5, 0.0),
-    //     material: custom_materials.add(CustomMaterial {
-    //         texture: asset_server.load(
-    //             "models/FlightHelmet/FlightHelmet_Materials_LensesMat_OcclusionRoughMetal.png",
-    //         ),
-    //     }),
-    //     ..default()
-    // });
-
-    //
-    //
-    //
-    // import shaders
-
-    //
-    // let image_shader_handle = import_shader(
-    //     IMAGE_SHADER,
-    //     IMAGE_SHADER_HANDLE,
-    //     &mut shaders,
-    //     IMAGE_CORE_SCRIPT,
-    //     "{{IMAGE}}",
-    // );
-
-    // // let image_shader = Shader::from_wgsl(Cow::from(IMAGE_SHADER));
-    // // shaders.set_untracked(IMAGE_SHADER_HANDLE.clone(), image_shader);
-    // // let image_handle: Handle<Shader> = IMAGE_SHADER_HANDLE.clone().typed();
-
-    // let texture_a_shader_handle = import_shader(
-    //     TEXTURE_A_SHADER,
-    //     TEXTURE_A_SHADER_HANDLE,
-    //     &mut shaders,
-    //     TEXTURE_A_CORE_SCRIPT,
-    //     "{{TEXTURE_A}}",
-    // );
-
-    // let texture_b_shader_handle = import_shader(
-    //     TEXTURE_B_SHADER,
-    //     TEXTURE_B_SHADER_HANDLE,
-    //     &mut shaders,
-    //     TEXTURE_B_CORE_SCRIPT,
-    //     "{{TEXTURE_B}}",
-    // );
-
-    // let texture_c_shader_handle = import_shader(
-    //     TEXTURE_C_SHADER,
-    //     TEXTURE_C_SHADER_HANDLE,
-    //     &mut shaders,
-    //     TEXTURE_C_CORE_SCRIPT,
-    //     "{{TEXTURE_C}}",
-    // );
-
-    // let texture_d_shader_handle = import_shader(
-    //     TEXTURE_D_SHADER,
-    //     TEXTURE_D_SHADER_HANDLE,
-    //     &mut shaders,
-    //     TEXTURE_D_CORE_SCRIPT,
-    //     "{{TEXTURE_D}}",
-    // );
-
+    let example = "clouds";
     // let example = "minimal";
     // let example = "paint";
-    // let example = "mixing_liquid";
-    // let example = "paint_streams";
-    let example = "paint_streams2";
+    // let example = "paint_streams2";
+    // let example = "seascape";
+
+    // let example = "fire2";
+    // let example = "fire";
     // let example = "debugger";
     // let example = "molecular_dynamics";
     // let example = "love_and_domination";
     // let example = "dancing_tree";
-    // let example = "simplest_detailed_fluid";
-    // let example = "interactive_fluid_simulation";
-    // let example = "liquid"; https://www.shadertoy.com/view/WtfyDj
 
     let all_shader_handles: ShaderHandles =
         make_and_load_shaders2(example, &asset_server, st_res.include_debugger);
@@ -824,6 +749,22 @@ impl FromWorld for MainImagePipeline {
                             ty: BindingType::Sampler(SamplerBindingType::Filtering),
                             count: None,
                         },
+                        BindGroupLayoutEntry {
+                            binding: 8,
+                            visibility: ShaderStages::COMPUTE,
+                            ty: BindingType::Texture {
+                                sample_type: TextureSampleType::Float { filterable: true },
+                                view_dimension: TextureViewDimension::D2,
+                                multisampled: false,
+                            },
+                            count: None,
+                        },
+                        BindGroupLayoutEntry {
+                            binding: 9,
+                            visibility: ShaderStages::COMPUTE,
+                            ty: BindingType::Sampler(SamplerBindingType::Filtering),
+                            count: None,
+                        },
                     ],
                 });
 
@@ -862,7 +803,7 @@ pub fn prepare_common_uniform(
 fn extract_main_image(
     mut commands: Commands,
     image: Res<MainImage>,
-    font_image: ResMut<FontImage>,
+    font_image: ResMut<ShadertoyTextures>,
     common_uniform: Res<CommonUniform>,
     all_shader_handles: Res<ShaderHandles>,
     canvas_size: Res<CanvasSize>,
@@ -884,7 +825,7 @@ fn queue_bind_group(
     pipeline: Res<MainImagePipeline>,
 
     gpu_images: Res<RenderAssets<Image>>,
-    font_image: Res<FontImage>,
+    shadertoy_textures: Res<ShadertoyTextures>,
     main_image: Res<MainImage>,
     texture_a_image: Res<TextureA>,
     texture_b_image: Res<TextureB>,
@@ -912,7 +853,9 @@ fn queue_bind_group(
     });
 
     let main_view = &gpu_images[&main_image.0];
-    let font_view = &gpu_images[&font_image.handle];
+    let font_view = &gpu_images[&shadertoy_textures.font_texture_handle];
+    let rgba_noise_256_view = &gpu_images[&shadertoy_textures.rgba_noise_256_handle];
+
     let texture_a_view = &gpu_images[&texture_a_image.0];
     let texture_b_view = &gpu_images[&texture_b_image.0];
     let texture_c_view = &gpu_images[&texture_c_image.0];
@@ -953,6 +896,14 @@ fn queue_bind_group(
             BindGroupEntry {
                 binding: 7,
                 resource: BindingResource::Sampler(&font_view.sampler),
+            },
+            BindGroupEntry {
+                binding: 8,
+                resource: BindingResource::TextureView(&rgba_noise_256_view.texture_view),
+            },
+            BindGroupEntry {
+                binding: 9,
+                resource: BindingResource::Sampler(&rgba_noise_256_view.sampler),
             },
         ],
     });

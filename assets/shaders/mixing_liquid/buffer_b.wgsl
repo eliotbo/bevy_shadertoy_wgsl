@@ -4,8 +4,10 @@ struct CommonUniform {
     iFrame: f32;
     iSampleRate: f32;
 
+    
     iMouse: vec4<f32>;
     iResolution: vec2<f32>;
+
     
 
     iChannelTime: vec4<f32>;
@@ -116,7 +118,7 @@ fn bN(p: vec2<f32>) -> vec3<f32> {
 fn pack(xIn: vec2<f32 >) -> u32 {
     var x = xIn;
     let x = 65534. * clamp(0.5 * x + 0.5, vec2<f32 >(0.000000001), vec2<f32 >(0.999999999));
-    return u32(round(x.x)) + 65534u * u32(round(x.y));
+    return u32(round(x.x)) + 65535u * u32(round(x.y));
 } 
 
 fn unpack(a: u32) -> vec2<f32> {

@@ -30,6 +30,7 @@ var buffer_c: texture_storage_2d<rgba32float, read_write>;
 [[group(0), binding(4)]]
 var buffer_d: texture_storage_2d<rgba32float, read_write>;
 
+
 let PI = 3.14159265;
 
 let dt = 2.5;

@@ -1,4 +1,6 @@
-
+// https://www.shadertoy.com/view/WtfyDj
+// no license
+// https://michaelmoroz.github.io/Reintegration-Tracking/
 
 fn mixN(a: vec3<f32>, b: vec3<f32>, k: f32) -> vec3<f32> {
     return sqrt(mix(a * a, b * b, clamp(k, 0., 1.)));
