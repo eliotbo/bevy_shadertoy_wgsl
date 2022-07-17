@@ -3,12 +3,9 @@ struct CommonUniform {
     iTimeDelta: f32;
     iFrame: f32;
     iSampleRate: f32;
-
     
     iMouse: vec4<f32>;
     iResolution: vec2<f32>;
-
-    
 
     iChannelTime: vec4<f32>;
     iChannelResolution: vec4<f32>;
@@ -41,34 +38,24 @@ fn lnln(p: vec2<f32>, a: vec2<f32>, b: vec2<f32>) -> f32 {
 } 
 
 fn T(U: vec2<f32>) -> vec4<f32> {
-	// return textureLoad(buffer_a, vec2<i32>(U));
+	let f = vec2<i32>(floor(U));
+	let c = vec2<i32>(ceil(U));
+	let fr = fract(U);
 
-		
-	let upleft =    vec2<i32>( i32(floor(U.x)), i32( ceil( U.y)) );
-	let upright =   vec2<i32>( i32(ceil( U.x)) , i32(ceil( U.y)) );
-	let downleft =  vec2<i32>( i32(floor(U.x)), i32( floor(U.y)) );
-	let downright = vec2<i32>( i32(ceil( U.x)) , i32(floor(U.y)) );
-
-	// let m = buffer_a.pixels[get_index(vec2<i32>( mid ))];
-
+	let upleft =    vec2<i32>( f.x,  c.y );
+	let upright =   vec2<i32>( c.x , c.y );
+	let downleft =  vec2<i32>( f.x,  f.y );
+	let downright = vec2<i32>( c.x , f.y );
 
 
-	let avg = (
-		 (1. - fract(U.x)) * (1. - fract(U.y)) *  textureLoad(buffer_a, downleft)
-		+ (1. - fract(U.x)) * fract(U.y) *  textureLoad(buffer_a, upleft)
-		+ fract(U.x) * fract(U.y)  * textureLoad(buffer_a, upright)
-		+  fract(U.x) * (1. - fract(U.y)) * textureLoad(buffer_a, downright)
+	let interpolated_2d = (
+		 (1. - fr.x) * (1. - fr.y) 	* textureLoad(buffer_a, downleft)
+		+ (1. - fr.x) * fr.y 		* textureLoad(buffer_a, upleft)
+		+ fr.x * fr.y  				* textureLoad(buffer_a, upright)
+		+  fr.x * (1. - fr.y) 		* textureLoad(buffer_a, downright)
 	);
-	return avg;
-		
-	// return textureSampleGrad(
-	// 	buffer_a,
-	// 	main_texture_sampler,
-	// 	U,
-	// 	vec2<f32>(0.),
-	// 	vec2<f32>(0.)
-	// );
 
+	return interpolated_2d;
 } 
 
 [[stage(compute), workgroup_size(8, 8, 1)]]

@@ -40,43 +40,6 @@ pub const WORKGROUP_SIZE: u32 = 8;
 pub const NUM_PARTICLES: u32 = 256;
 pub const BORDERS: f32 = 1.0;
 
-// const COMMON: &'static str = include_str!("common.wgsl");
-
-// const IMAGE_SHADER: &'static str = include_str!("templates/image_template.wgsl");
-// const IMAGE_CORE_SCRIPT: &'static str = include_str!("templates/image.wgsl");
-// pub const IMAGE_SHADER_HANDLE: HandleUntyped = HandleUntyped::weak_from_u64(
-//     bevy::render::render_resource::Shader::TYPE_UUID,
-//     192598017680025719,
-// );
-
-// const TEXTURE_A_SHADER: &'static str = include_str!("templates/texture_a_template.wgsl");
-// const TEXTURE_A_CORE_SCRIPT: &'static str = include_str!("templates/texture_a.wgsl");
-// pub const TEXTURE_A_SHADER_HANDLE: HandleUntyped = HandleUntyped::weak_from_u64(
-//     bevy::render::render_resource::Shader::TYPE_UUID,
-//     986988749367675188,
-// );
-
-// const TEXTURE_B_SHADER: &'static str = include_str!("templates/texture_b_template.wgsl");
-// const TEXTURE_B_CORE_SCRIPT: &'static str = include_str!("templates/texture_b.wgsl");
-// pub const TEXTURE_B_SHADER_HANDLE: HandleUntyped = HandleUntyped::weak_from_u64(
-//     bevy::render::render_resource::Shader::TYPE_UUID,
-//     808999425257967014,
-// );
-
-// const TEXTURE_C_SHADER: &'static str = include_str!("templates/texture_c_template.wgsl");
-// const TEXTURE_C_CORE_SCRIPT: &'static str = include_str!("templates/texture_c.wgsl");
-// pub const TEXTURE_C_SHADER_HANDLE: HandleUntyped = HandleUntyped::weak_from_u64(
-//     bevy::render::render_resource::Shader::TYPE_UUID,
-//     819348234244712380,
-// );
-
-// const TEXTURE_D_SHADER: &'static str = include_str!("templates/texture_d_template.wgsl");
-// const TEXTURE_D_CORE_SCRIPT: &'static str = include_str!("templates/texture_d.wgsl");
-// pub const TEXTURE_D_SHADER_HANDLE: HandleUntyped = HandleUntyped::weak_from_u64(
-//     bevy::render::render_resource::Shader::TYPE_UUID,
-//     193535259211504032,
-// );
-
 #[derive(Clone, Debug)]
 pub struct CanvasSize {
     pub width: u32,
@@ -96,13 +59,6 @@ pub struct ShadertoyResources {
 }
 
 fn main() {
-    // // not sure this works on wasm
-    // let mut wgpu_options = WgpuLimits::default();
-    // wgpu_options.max_bind_groups = 5;
-    // wgpu_options.max_storage_buffers_per_shader_stage = 5;
-    // wgpu_options.max_storage_textures_per_shader_stage = 5;
-    // wgpu_options.max_inter_stage_shader_components = 5;
-
     let mut app = App::new();
     // app.insert_resource(wgpu_options)
     app.insert_resource(ClearColor(Color::GRAY))
@@ -120,7 +76,7 @@ fn main() {
         .insert_resource(ShadertoyResources {
             number_of_frames: 0,
             time_since_reset: 0.0,
-            include_debugger: true,
+            include_debugger: false,
         })
         .add_plugins(DefaultPlugins)
         .add_system(bevy::input::system::exit_on_esc_system)
@@ -300,7 +256,8 @@ fn setup(
     // let example = "paint_streams2";
     // let example = "seascape";
     // let example = "sunset";
-    let example = "fluid";
+    // let example = "fluid";
+    let example = "dry_ice";
 
     // let example = "fire2";
     // let example = "fire";
