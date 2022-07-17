@@ -94,6 +94,8 @@ fn norm(p: vec3<f32>) -> vec3<f32> {
 
 } 
 
+
+
 [[stage(compute), workgroup_size(8, 8, 1)]]
 fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
     let R: vec2<f32> = uni.iResolution.xy;
@@ -119,7 +121,9 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
 	C = C * (2.5 * dot(d, n) * (0.3 + 0.7 * length(lp - p) / length(light - p)));
 	C = atan(C) / pi * 2.;
 
-    textureStore(texture, y_inverted_location, C);
+
+	textureStore(texture, y_inverted_location, C);
+
 
 } 
 

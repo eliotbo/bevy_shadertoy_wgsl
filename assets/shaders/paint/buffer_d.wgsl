@@ -4,8 +4,10 @@ struct CommonUniform {
     iFrame: f32;
     iSampleRate: f32;
 
+    
     iMouse: vec4<f32>;
     iResolution: vec2<f32>;
+
     
 
     iChannelTime: vec4<f32>;
@@ -30,7 +32,7 @@ var buffer_d: texture_storage_2d<rgba32float, read_write>;
 
 
 
-[[stage(compute), workgroup_size(8, 8, 1)]]
+[stage(compute), workgroup_size(8, 8, 1)]]
 fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
 
 }

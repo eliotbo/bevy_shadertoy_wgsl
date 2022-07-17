@@ -294,11 +294,13 @@ fn setup(
     // rain: https://www.shadertoy.com/view/wdGSzw
     // fix clouds
 
-    let example = "clouds";
+    // let example = "clouds";
     // let example = "minimal";
     // let example = "paint";
     // let example = "paint_streams2";
     // let example = "seascape";
+    // let example = "sunset";
+    let example = "fluid";
 
     // let example = "fire2";
     // let example = "fire";

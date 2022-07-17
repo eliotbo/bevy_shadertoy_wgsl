@@ -4,8 +4,10 @@ struct CommonUniform {
     iFrame: f32;
     iSampleRate: f32;
 
+    
     iMouse: vec4<f32>;
     iResolution: vec2<f32>;
+
     
 
     iChannelTime: vec4<f32>;
@@ -27,7 +29,6 @@ var buffer_c: texture_storage_2d<rgba32float, read_write>;
 
 [[group(0), binding(4)]]
 var buffer_d: texture_storage_2d<rgba32float, read_write>;
-
 
 
 

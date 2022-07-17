@@ -30,6 +30,18 @@ var buffer_c: texture_storage_2d<rgba32float, read_write>;
 [[group(0), binding(4)]]
 var buffer_d: texture_storage_2d<rgba32float, read_write>;
 
+// [[group(0), binding(1)]]
+// var buffer_a: texture_storage_2d<rgba32float, read_write>;
+
+// [[group(0), binding(2)]]
+// var buffer_b: texture_storage_2d<rgba32float, read_write>;
+
+// [[group(0), binding(3)]]
+// var buffer_c: texture_storage_2d<rgba32float, read_write>;
+
+// [[group(0), binding(4)]]
+// var buffer_d: texture_storage_2d<rgba32float, read_write>;
+
 [[group(0), binding(5)]]
 var texture: texture_storage_2d<rgba32float, read_write>;
 
@@ -867,7 +879,9 @@ fn toLinear(sRGB: vec4<f32>) -> vec4<f32> {
     return mix(higher, lower, cutoff);
 }
 
-
+// https://www.shadertoy.com/view/WtfyDj
+// no license
+// https://michaelmoroz.github.io/Reintegration-Tracking/
 
 fn mixN(a: vec3<f32>, b: vec3<f32>, k: f32) -> vec3<f32> {
     return sqrt(mix(a * a, b * b, clamp(k, 0., 1.)));
@@ -875,6 +889,12 @@ fn mixN(a: vec3<f32>, b: vec3<f32>, k: f32) -> vec3<f32> {
 
 fn V(p: vec2<f32>) -> vec4<f32> {
     let data: vec4<f32> = textureLoad(buffer_c, vec2<i32>(p));
+    //  let data: vec4<f32> = textureSampleLevel(buffer_c, buffer_sampler, p / R, 0.0);
+    // let data: vec4<f32> = textureSampleGrad(buffer_c,
+    //                  buffer_sampler,
+    //                  p / R,
+    //                  vec2<f32>(0.0),
+    //                  vec2<f32>(0.0)) ;
     return data;
 } 
 
@@ -978,6 +998,6 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
     let col_debug_info = show_debug_info(location, col.xyz);
     
     // textureStore(texture, y_inverted_location, toLinear(debug));
-    // textureStore(texture, y_inverted_location, toLinear(col));
-    textureStore(texture, y_inverted_location, toLinear(col_debug_info));
+    textureStore(texture, y_inverted_location, toLinear(col));
+    // textureStore(texture, y_inverted_location, toLinear(col_debug_info));
 } 

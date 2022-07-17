@@ -1,16 +1,16 @@
 {{COMMON_PRELUDE}}
 
-[[group(0), binding(1)]]
-var buffer_a: texture_storage_2d<rgba32float, read_write>;
+// [[group(0), binding(1)]]
+// var buffer_a: texture_storage_2d<rgba32float, read_write>;
 
-[[group(0), binding(2)]]
-var buffer_b: texture_storage_2d<rgba32float, read_write>;
+// [[group(0), binding(2)]]
+// var buffer_b: texture_storage_2d<rgba32float, read_write>;
 
-[[group(0), binding(3)]]
-var buffer_c: texture_storage_2d<rgba32float, read_write>;
+// [[group(0), binding(3)]]
+// var buffer_c: texture_storage_2d<rgba32float, read_write>;
 
-[[group(0), binding(4)]]
-var buffer_d: texture_storage_2d<rgba32float, read_write>;
+// [[group(0), binding(4)]]
+// var buffer_d: texture_storage_2d<rgba32float, read_write>;
 
 [[group(0), binding(5)]]
 var texture: texture_storage_2d<rgba32float, read_write>;
@@ -29,6 +29,8 @@ var rgba_noise_256_texture: texture_2d<f32>;
 
 [[group(0), binding(9)]]
 var rgba_noise_256_texture_sampler: sampler;
+
+
 
 // [[stage(compute), workgroup_size(8, 8, 1)]]
 // fn init([[builtin(global_invocation_id)]] invocation_id: vec3<u32>, [[builtin(num_workgroups)]] num_workgroups: vec3<u32>) {
