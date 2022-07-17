@@ -127,46 +127,6 @@ fn sample_texture(ch: texture_storage_2d<rgba32float, read_write>, U01: vec2<f32
 } 
 
 
-// fn div(x: i32, y: i32, location: vec2<f32>) -> f32 {
-// 	return textureLoad(buffer_c, vec2<i32>(vec2<i32>(location) + vec2<i32>(x, y))).y;
-// } 
-
-// fn pre(x: i32, y: i32, location: vec2<f32>) -> f32 {
-// 	return textureLoad(buffer_c, vec2<i32>(vec2<i32>(location) + vec2<i32>(x, y))).x;
-// } 
-
-// fn getPre(location: vec2<f32>) -> f32 {
-// 	var p: f32 = 0.;
-// 	p = p + (9450. * pre(-4, -2, location));
-// 	p = p + (14400. * pre(-4, 0, location));
-// 	p = p + (9450. * pre(-4, 2, location));
-// 	p = p + (11340. * pre(-3, 3, location));
-// 	p = p + (9450. * pre(-2, -4, location));
-// 	p = p + (25200. * pre(3, 1, location));
-// 	p = p + (11340. * pre(3, 3, location));
-// 	p = p + (9450. * pre(4, -2, location));
-// 	p = p + (14400. * pre(4, 0, location));
-// 	p = p + (9450. * pre(4, 2, location));
-// 	return p / 1048576.;
-// } 
-
-// [[stage(compute), workgroup_size(8, 8, 1)]]
-// fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
-//     let R: vec2<f32> = uni.iResolution.xy;
-//     let y_inverted_location = vec2<i32>(i32(invocation_id.x), i32(R.y) - i32(invocation_id.y));
-//     let location = vec2<i32>(i32(invocation_id.x), i32(invocation_id.y));
-    
-// 	var fragColor: vec4<f32> = vec4<f32>(0., 0., 0., 0.);
-// 	var C = vec2<f32>(f32(location.x), f32(location.y) );
-
-// 	let p: f32 = getPre(C) - div(0, 0, C);
-// 	fragColor = vec4<f32>(p, vec3<f32>(1.));
-//     textureStore(buffer_d, location, fragColor);
-
-
-// } 
-
-
 
 var<private> location: vec2<i32>;
 

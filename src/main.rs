@@ -66,7 +66,7 @@ fn main() {
             width: 960.,
             height: 600.,
             cursor_visible: false,
-            // present_mode: PresentMode::Immediate, // uncomment for unthrottled FPS
+            present_mode: PresentMode::Immediate, // uncomment for unthrottled FPS
             ..default()
         })
         .insert_resource(CanvasSize {
