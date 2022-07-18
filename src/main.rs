@@ -256,8 +256,9 @@ fn setup(
     // let example = "paint_streams2";
     // let example = "seascape";
     // let example = "sunset";
-    // let example = "fluid";
-    let example = "dry_ice";
+    let example = "fluid";
+    // let example = "dry_ice";
+    // let example = "protean_clouds";
 
     // let example = "fire2";
     // let example = "fire";
