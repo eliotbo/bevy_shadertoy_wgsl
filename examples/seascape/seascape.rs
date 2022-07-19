@@ -41,7 +41,7 @@ fn setup(
     mut st_res: ResMut<ShadertoyResources>,
 ) {
     let example = "seascape";
-    st_res.include_debugger = true;
+    st_res.include_debugger = false;
 
     let all_shader_handles: ShaderHandles =
         make_and_load_shaders2(example, &asset_server, st_res.include_debugger);

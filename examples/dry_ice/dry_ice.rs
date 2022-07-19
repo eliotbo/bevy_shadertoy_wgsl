@@ -21,8 +21,10 @@ fn main() {
             ..default()
         })
         .insert_resource(ShadertoyCanvas {
-            width: (960.0_f32 * BORDERS).floor() as u32,
-            height: (600.0_f32 * BORDERS).floor() as u32,
+            width: (960.0_f32 * 1.0).floor() as u32,
+            height: (600.0_f32 * 1.0).floor() as u32,
+            borders: 0.,
+            position: Vec3::new(0.0, 0.0, 0.0),
         })
         .add_plugins(DefaultPlugins)
         .add_system(bevy::input::system::exit_on_esc_system)

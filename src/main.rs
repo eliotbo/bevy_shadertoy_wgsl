@@ -40,9 +40,11 @@ pub const NUM_PARTICLES: u32 = 256;
 pub const BORDERS: f32 = 1.0;
 
 #[derive(Clone, Debug)]
-pub struct CanvasSize {
+pub struct ShadertoyCanvas {
     pub width: u32,
     pub height: u32,
+    pub borders: f32,
+    pub position: Vec3,
 }
 
 #[derive(Clone)]
@@ -68,9 +70,11 @@ fn main() {
             // present_mode: PresentMode::Immediate, // uncomment for unthrottled FPS
             ..default()
         })
-        .insert_resource(CanvasSize {
-            width: (960.0_f32 * BORDERS).floor() as u32,
-            height: (600.0_f32 * BORDERS).floor() as u32,
+        .insert_resource(ShadertoyCanvas {
+            width: 960. as u32,
+            height: 600.0 as u32,
+            borders: 0.2,
+            position: Vec3::new(0.0, 0.0, 0.0),
         })
         .insert_resource(ShadertoyResources {
             number_of_frames: 0,
@@ -98,7 +102,7 @@ fn main() {
 fn setup(
     mut commands: Commands,
     mut images: ResMut<Assets<Image>>,
-    canvas_size: Res<CanvasSize>,
+    canvas: Res<ShadertoyCanvas>,
     // mut shaders: ResMut<Assets<Shader>>,
     asset_server: Res<AssetServer>,
     windows: Res<Windows>,
@@ -109,8 +113,8 @@ fn setup(
 
     let mut image = Image::new_fill(
         Extent3d {
-            width: canvas_size.width,
-            height: canvas_size.height,
+            width: canvas.width,
+            height: canvas.height,
             depth_or_array_layers: 1,
         },
         TextureDimension::D2,
@@ -126,10 +130,7 @@ fn setup(
 
     commands.spawn_bundle(SpriteBundle {
         sprite: Sprite {
-            custom_size: Some(Vec2::new(
-                canvas_size.width as f32,
-                canvas_size.height as f32,
-            )),
+            custom_size: Some(Vec2::new(canvas.width as f32, canvas.height as f32)),
             ..default()
         },
         texture: image.clone(),
@@ -163,8 +164,8 @@ fn setup(
     // Texture A: equivalent of Buffer A in Shadertoy
     let mut texture_a = Image::new_fill(
         Extent3d {
-            width: canvas_size.width,
-            height: canvas_size.height,
+            width: canvas.width,
+            height: canvas.height,
             depth_or_array_layers: 1,
         },
         TextureDimension::D2,
@@ -185,8 +186,8 @@ fn setup(
     // Texture B: equivalent of Buffer B in Shadertoy
     let mut texture_b = Image::new_fill(
         Extent3d {
-            width: canvas_size.width,
-            height: canvas_size.height,
+            width: canvas.width,
+            height: canvas.height,
             depth_or_array_layers: 1,
         },
         TextureDimension::D2,
@@ -207,8 +208,8 @@ fn setup(
     // Texture C: equivalent of Buffer C in Shadertoy
     let mut texture_c = Image::new_fill(
         Extent3d {
-            width: canvas_size.width,
-            height: canvas_size.height,
+            width: canvas.width,
+            height: canvas.height,
             depth_or_array_layers: 1,
         },
         TextureDimension::D2,
@@ -229,8 +230,8 @@ fn setup(
     // Texture D: equivalent of Buffer D in Shadertoy
     let mut texture_d = Image::new_fill(
         Extent3d {
-            width: canvas_size.width,
-            height: canvas_size.height,
+            width: canvas.width,
+            height: canvas.height,
             depth_or_array_layers: 1,
         },
         TextureDimension::D2,
@@ -409,7 +410,7 @@ pub struct CommonUniformMeta {
 
 fn make_new_texture(
     // old_buffer_length: i32,
-    canvas_size: &CanvasSize,
+    canvas: &ShadertoyCanvas,
     image_handle: &Handle<Image>,
     images: &mut ResMut<Assets<Image>>,
 ) {
@@ -419,8 +420,8 @@ fn make_new_texture(
         // data soon though.
 
         image.resize(Extent3d {
-            width: canvas_size.width,
-            height: canvas_size.height,
+            width: canvas.width,
+            height: canvas.height,
             depth_or_array_layers: 1,
         });
     }
@@ -436,7 +437,7 @@ fn update_common_uniform(
     windows: Res<Windows>,
     time: Res<Time>,
     mouse_button_input: Res<Input<MouseButton>>,
-    mut canvas_size: ResMut<CanvasSize>,
+    mut canvas: ResMut<ShadertoyCanvas>,
     texture_a: Res<TextureA>,
     texture_b: Res<TextureB>,
     texture_c: Res<TextureC>,
@@ -448,16 +449,16 @@ fn update_common_uniform(
         common_uniform.i_resolution.x = (window_resize.width * BORDERS).floor();
         common_uniform.i_resolution.y = (window_resize.height * BORDERS).floor();
 
-        canvas_size.width = common_uniform.i_resolution.x as u32;
-        canvas_size.height = common_uniform.i_resolution.y as u32;
+        canvas.width = common_uniform.i_resolution.x as u32;
+        canvas.height = common_uniform.i_resolution.y as u32;
         for (mut sprite, _, image_handle) in query.iter_mut() {
             sprite.custom_size = Some(common_uniform.i_resolution);
 
-            make_new_texture(&canvas_size, image_handle, &mut images);
-            make_new_texture(&canvas_size, &texture_a.0, &mut images);
-            make_new_texture(&canvas_size, &texture_b.0, &mut images);
-            make_new_texture(&canvas_size, &texture_c.0, &mut images);
-            make_new_texture(&canvas_size, &texture_d.0, &mut images);
+            make_new_texture(&canvas, image_handle, &mut images);
+            make_new_texture(&canvas, &texture_a.0, &mut images);
+            make_new_texture(&canvas, &texture_b.0, &mut images);
+            make_new_texture(&canvas, &texture_c.0, &mut images);
+            make_new_texture(&canvas, &texture_d.0, &mut images);
         }
     }
 
@@ -884,7 +885,7 @@ fn extract_main_image(
     font_image: ResMut<ShadertoyTextures>,
     common_uniform: Res<CommonUniform>,
     all_shader_handles: Res<ShaderHandles>,
-    canvas_size: Res<CanvasSize>,
+    canvas_size: Res<ShadertoyCanvas>,
     mut window_resize_event: EventReader<WindowResized>,
 ) {
     // insert common uniform only once
@@ -1085,7 +1086,7 @@ impl render_graph::Node for MainNode {
         world: &World,
     ) -> Result<(), render_graph::NodeRunError> {
         let bind_group = world.resource::<MainImageBindGroup>();
-        let canvas_size = world.resource::<CanvasSize>();
+        let canvas_size = world.resource::<ShadertoyCanvas>();
 
         let init_pipeline_cache = bind_group.init_pipeline;
         let update_pipeline_cache = bind_group.update_pipeline;

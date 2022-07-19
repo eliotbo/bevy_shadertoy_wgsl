@@ -211,8 +211,8 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
     // fragColor = vec4<f32>(1.);
     // fragColor = getSkyColor(location);
 
-    let col_debug_info = show_debug_info(location, fragColor.xyz);
+    // let col_debug_info = show_debug_info(location, fragColor.xyz);
 
-    textureStore(texture, y_inverted_location, toLinear(col_debug_info));
+    textureStore(texture, y_inverted_location, toLinear(fragColor));
 } 
 

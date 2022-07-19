@@ -42,3 +42,6 @@ fn setup(
 
     commands.insert_resource(all_shader_handles);
 }
+
+//  ffmpeg -f concat -safe 0 -i list.txt -c copy output.mp4
+//  ffmpeg -ss 2 -t 27 -i output.mp4 -vf "fps=20,scale=480:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" -loop 0 showcase.gif

@@ -23,7 +23,7 @@ fn main() {
         .insert_resource(ShadertoyCanvas {
             width: 960. as u32,
             height: 600.0 as u32,
-            borders: 0.2,
+            borders: 0.,
             position: Vec3::new(0.0, 0.0, 0.0),
         })
         .add_plugins(DefaultPlugins)

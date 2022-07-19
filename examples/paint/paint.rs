@@ -3,6 +3,7 @@
 use bevy::{
     diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
     prelude::*,
+    window::PresentMode,
 };
 
 use bevy_shadertoy_wgsl::*;
@@ -15,7 +16,7 @@ fn main() {
             width: 960.,
             height: 600.,
             cursor_visible: true,
-            // present_mode: PresentMode::Immediate, // uncomment for unthrottled FPS
+            present_mode: PresentMode::Immediate, // uncomment for unthrottled FPS
             ..default()
         })
         .insert_resource(ShadertoyCanvas {
