@@ -170,6 +170,8 @@ fn sample_texture(ch: texture_storage_2d<rgba32float, read_write>, U01: vec2<f32
 } 
 
 
+// https://www.shadertoy.com/view/WlVyRV
+// License Creative Commons Attribution-NonCommercial-ShareAlike 3.0
 
 fn sceneIntersection(ro: vec3<f32>, rd: vec3<f32>, inter: ptr<function, vec3<f32>>, normal: ptr<function, vec3<f32>>, color: ptr<function, vec3<f32>>, dist: f32, lightPos: ptr<function, vec3<f32>>) -> f32 {
 	var mint: f32 = dist;

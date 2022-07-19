@@ -14,7 +14,8 @@ use crate::texture_a::TextureA;
 use crate::texture_b::TextureB;
 use crate::texture_d::TextureD;
 use crate::{
-    CanvasSize, CommonUniform, CommonUniformMeta, ShaderHandles, ShadertoyState, WORKGROUP_SIZE,
+    CommonUniform, CommonUniformMeta, ShaderHandles, ShadertoyCanvas, ShadertoyPipelines,
+    ShadertoyState, WORKGROUP_SIZE,
 };
 
 struct TextureCBindGroup {
@@ -26,81 +27,81 @@ struct TextureCBindGroup {
 #[derive(Deref)]
 pub struct TextureC(pub Handle<Image>);
 
-pub struct TextureCPipeline {
-    texture_c_bind_group_layout: BindGroupLayout,
-}
+// pub struct TextureCPipeline {
+//     texture_c_bind_group_layout: BindGroupLayout,
+// }
 
-impl FromWorld for TextureCPipeline {
-    fn from_world(world: &mut World) -> Self {
-        let texture_c_bind_group_layout = world
-            .resource::<RenderDevice>()
-            .create_bind_group_layout(&BindGroupLayoutDescriptor {
-                label: Some("layout_c"),
-                entries: &[
-                    BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: ShaderStages::COMPUTE,
-                        ty: BindingType::Buffer {
-                            ty: BufferBindingType::Uniform,
-                            has_dynamic_offset: false,
-                            min_binding_size: BufferSize::new(
-                                CommonUniform::std140_size_static() as u64
-                            ),
-                        },
-                        count: None,
-                    },
-                    BindGroupLayoutEntry {
-                        binding: 1,
-                        visibility: ShaderStages::COMPUTE,
-                        ty: BindingType::StorageTexture {
-                            access: StorageTextureAccess::ReadWrite,
-                            format: TextureFormat::Rgba32Float,
-                            view_dimension: TextureViewDimension::D2,
-                        },
-                        count: None,
-                    },
-                    BindGroupLayoutEntry {
-                        binding: 2,
-                        visibility: ShaderStages::COMPUTE,
-                        ty: BindingType::StorageTexture {
-                            access: StorageTextureAccess::ReadWrite,
-                            format: TextureFormat::Rgba32Float,
-                            view_dimension: TextureViewDimension::D2,
-                        },
-                        count: None,
-                    },
-                    BindGroupLayoutEntry {
-                        binding: 3,
-                        visibility: ShaderStages::COMPUTE,
-                        ty: BindingType::StorageTexture {
-                            access: StorageTextureAccess::ReadWrite,
-                            format: TextureFormat::Rgba32Float,
-                            view_dimension: TextureViewDimension::D2,
-                        },
-                        count: None,
-                    },
-                    BindGroupLayoutEntry {
-                        binding: 4,
-                        visibility: ShaderStages::COMPUTE,
-                        ty: BindingType::StorageTexture {
-                            access: StorageTextureAccess::ReadWrite,
-                            format: TextureFormat::Rgba32Float,
-                            view_dimension: TextureViewDimension::D2,
-                        },
-                        count: None,
-                    },
-                ],
-            });
+// impl FromWorld for TextureCPipeline {
+//     fn from_world(world: &mut World) -> Self {
+//         let texture_c_bind_group_layout = world
+//             .resource::<RenderDevice>()
+//             .create_bind_group_layout(&BindGroupLayoutDescriptor {
+//                 label: Some("layout_c"),
+//                 entries: &[
+//                     BindGroupLayoutEntry {
+//                         binding: 0,
+//                         visibility: ShaderStages::COMPUTE,
+//                         ty: BindingType::Buffer {
+//                             ty: BufferBindingType::Uniform,
+//                             has_dynamic_offset: false,
+//                             min_binding_size: BufferSize::new(
+//                                 CommonUniform::std140_size_static() as u64
+//                             ),
+//                         },
+//                         count: None,
+//                     },
+//                     BindGroupLayoutEntry {
+//                         binding: 1,
+//                         visibility: ShaderStages::COMPUTE,
+//                         ty: BindingType::StorageTexture {
+//                             access: StorageTextureAccess::ReadWrite,
+//                             format: TextureFormat::Rgba32Float,
+//                             view_dimension: TextureViewDimension::D2,
+//                         },
+//                         count: None,
+//                     },
+//                     BindGroupLayoutEntry {
+//                         binding: 2,
+//                         visibility: ShaderStages::COMPUTE,
+//                         ty: BindingType::StorageTexture {
+//                             access: StorageTextureAccess::ReadWrite,
+//                             format: TextureFormat::Rgba32Float,
+//                             view_dimension: TextureViewDimension::D2,
+//                         },
+//                         count: None,
+//                     },
+//                     BindGroupLayoutEntry {
+//                         binding: 3,
+//                         visibility: ShaderStages::COMPUTE,
+//                         ty: BindingType::StorageTexture {
+//                             access: StorageTextureAccess::ReadWrite,
+//                             format: TextureFormat::Rgba32Float,
+//                             view_dimension: TextureViewDimension::D2,
+//                         },
+//                         count: None,
+//                     },
+//                     BindGroupLayoutEntry {
+//                         binding: 4,
+//                         visibility: ShaderStages::COMPUTE,
+//                         ty: BindingType::StorageTexture {
+//                             access: StorageTextureAccess::ReadWrite,
+//                             format: TextureFormat::Rgba32Float,
+//                             view_dimension: TextureViewDimension::D2,
+//                         },
+//                         count: None,
+//                     },
+//                 ],
+//             });
 
-        // let shader = world
-        //     .resource::<AssetServer>()
-        //     .load("shaders/texture_b.wgsl");
+//         // let shader = world
+//         //     .resource::<AssetServer>()
+//         //     .load("shaders/texture_b.wgsl");
 
-        TextureCPipeline {
-            texture_c_bind_group_layout,
-        }
-    }
-}
+//         TextureCPipeline {
+//             texture_c_bind_group_layout,
+//         }
+//     }
+// }
 
 pub fn extract_texture_c(mut commands: Commands, image: Res<TextureC>) {
     commands.insert_resource(TextureC(image.clone()));
@@ -108,7 +109,7 @@ pub fn extract_texture_c(mut commands: Commands, image: Res<TextureC>) {
 
 pub fn queue_bind_group_c(
     mut commands: Commands,
-    pipeline: Res<TextureCPipeline>,
+    pipeline: Res<ShadertoyPipelines>,
     gpu_images: Res<RenderAssets<Image>>,
     texture_a_image: Res<TextureA>,
     texture_b_image: Res<TextureB>,
@@ -121,7 +122,7 @@ pub fn queue_bind_group_c(
 ) {
     let init_pipeline = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
         label: None,
-        layout: Some(vec![pipeline.texture_c_bind_group_layout.clone()]),
+        layout: Some(vec![pipeline.abcd_group_layout.clone()]),
         shader: all_shader_handles.texture_c_shader.clone(),
         shader_defs: vec!["INIT".to_string()],
         entry_point: Cow::from("update"),
@@ -129,7 +130,7 @@ pub fn queue_bind_group_c(
 
     let update_pipeline = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
         label: None,
-        layout: Some(vec![pipeline.texture_c_bind_group_layout.clone()]),
+        layout: Some(vec![pipeline.abcd_group_layout.clone()]),
         shader: all_shader_handles.texture_c_shader.clone(),
         shader_defs: vec![],
         entry_point: Cow::from("update"),
@@ -142,7 +143,7 @@ pub fn queue_bind_group_c(
 
     let texture_c_bind_group = render_device.create_bind_group(&BindGroupDescriptor {
         label: Some("bind_group_c"),
-        layout: &pipeline.texture_c_bind_group_layout,
+        layout: &pipeline.abcd_group_layout,
         entries: &[
             BindGroupEntry {
                 binding: 0,
@@ -221,7 +222,7 @@ impl render_graph::Node for TextureCNode {
         world: &World,
     ) -> Result<(), render_graph::NodeRunError> {
         let bind_group = world.resource::<TextureCBindGroup>();
-        let canvas_size = world.resource::<CanvasSize>();
+        let canvas_size = world.resource::<ShadertoyCanvas>();
 
         let texture_c_bind_group = &bind_group.texture_c_bind_group;
 

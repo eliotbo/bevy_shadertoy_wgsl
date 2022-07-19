@@ -117,6 +117,6 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
     let col_debug_info = show_debug_info(location, col.xyz);
     
     // textureStore(texture, y_inverted_location, toLinear(debug));
-    textureStore(texture, y_inverted_location, toLinear(col));
-    // textureStore(texture, y_inverted_location, toLinear(col_debug_info));
+    // textureStore(texture, y_inverted_location, toLinear(col));
+    textureStore(texture, y_inverted_location, toLinear(col_debug_info));
 } 

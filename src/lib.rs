@@ -5,20 +5,20 @@
 
 use bevy::{
     core_pipeline::node::MAIN_PASS_DEPENDENCIES,
-    diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
     prelude::*,
-    reflect::TypeUuid,
     render::{
         render_asset::RenderAssets,
-        render_graph::{self, RenderGraph},
+        render_graph::{self, NodeLabel, RenderGraph},
         // render_resource::*,
         render_resource::{std140::AsStd140, *},
         renderer::{RenderContext, RenderDevice, RenderQueue},
         RenderApp,
         RenderStage,
     },
-    window::{PresentMode, WindowResized},
+    window::WindowResized,
 };
+
+use bevy::{app::ScheduleRunnerSettings, utils::Duration};
 
 use std::borrow::Cow;
 use std::fs; // not compatible with WASM -->
@@ -33,54 +33,18 @@ mod texture_c;
 use texture_c::*;
 
 mod texture_d;
-use texture_d::{extract_texture_d, queue_bind_group_d, TextureD, TextureDNode, TextureDPipeline};
+use texture_d::*;
 
-// pub const SIZE: (u32, u32) = (1280, 720);
 pub const WORKGROUP_SIZE: u32 = 8;
 pub const NUM_PARTICLES: u32 = 256;
-pub const BORDERS: f32 = 1.0;
-
-// const COMMON: &'static str = include_str!("common.wgsl");
-
-// const IMAGE_SHADER: &'static str = include_str!("templates/image_template.wgsl");
-// const IMAGE_CORE_SCRIPT: &'static str = include_str!("templates/image.wgsl");
-// pub const IMAGE_SHADER_HANDLE: HandleUntyped = HandleUntyped::weak_from_u64(
-//     bevy::render::render_resource::Shader::TYPE_UUID,
-//     192598017680025719,
-// );
-
-// const TEXTURE_A_SHADER: &'static str = include_str!("templates/texture_a_template.wgsl");
-// const TEXTURE_A_CORE_SCRIPT: &'static str = include_str!("templates/texture_a.wgsl");
-// pub const TEXTURE_A_SHADER_HANDLE: HandleUntyped = HandleUntyped::weak_from_u64(
-//     bevy::render::render_resource::Shader::TYPE_UUID,
-//     986988749367675188,
-// );
-
-// const TEXTURE_B_SHADER: &'static str = include_str!("templates/texture_b_template.wgsl");
-// const TEXTURE_B_CORE_SCRIPT: &'static str = include_str!("templates/texture_b.wgsl");
-// pub const TEXTURE_B_SHADER_HANDLE: HandleUntyped = HandleUntyped::weak_from_u64(
-//     bevy::render::render_resource::Shader::TYPE_UUID,
-//     808999425257967014,
-// );
-
-// const TEXTURE_C_SHADER: &'static str = include_str!("templates/texture_c_template.wgsl");
-// const TEXTURE_C_CORE_SCRIPT: &'static str = include_str!("templates/texture_c.wgsl");
-// pub const TEXTURE_C_SHADER_HANDLE: HandleUntyped = HandleUntyped::weak_from_u64(
-//     bevy::render::render_resource::Shader::TYPE_UUID,
-//     819348234244712380,
-// );
-
-// const TEXTURE_D_SHADER: &'static str = include_str!("templates/texture_d_template.wgsl");
-// const TEXTURE_D_CORE_SCRIPT: &'static str = include_str!("templates/texture_d.wgsl");
-// pub const TEXTURE_D_SHADER_HANDLE: HandleUntyped = HandleUntyped::weak_from_u64(
-//     bevy::render::render_resource::Shader::TYPE_UUID,
-//     193535259211504032,
-// );
+// pub const BORDERS: f32 = 1.0;
 
 #[derive(Clone, Debug)]
-pub struct CanvasSize {
+pub struct ShadertoyCanvas {
     pub width: u32,
     pub height: u32,
+    pub borders: f32,
+    pub position: Vec3,
 }
 
 #[derive(Clone)]
@@ -92,70 +56,24 @@ pub struct ShadertoyTextures {
 pub struct ShadertoyResources {
     number_of_frames: u32,
     time_since_reset: f32,
-    include_debugger: bool,
+    pub include_debugger: bool,
 }
-
-fn main() {
-    // // not sure this works on wasm
-    // let mut wgpu_options = WgpuLimits::default();
-    // wgpu_options.max_bind_groups = 5;
-    // wgpu_options.max_storage_buffers_per_shader_stage = 5;
-    // wgpu_options.max_storage_textures_per_shader_stage = 5;
-    // wgpu_options.max_inter_stage_shader_components = 5;
-
-    let mut app = App::new();
-    // app.insert_resource(wgpu_options)
-    app.insert_resource(ClearColor(Color::GRAY))
-        .insert_resource(WindowDescriptor {
-            width: 960.,
-            height: 600.,
-            cursor_visible: false,
-            // present_mode: PresentMode::Immediate, // uncomment for unthrottled FPS
-            ..default()
-        })
-        .insert_resource(CanvasSize {
-            width: (960.0_f32 * BORDERS).floor() as u32,
-            height: (600.0_f32 * BORDERS).floor() as u32,
-        })
-        .insert_resource(ShadertoyResources {
-            number_of_frames: 0,
-            time_since_reset: 0.0,
-            include_debugger: true,
-        })
-        .add_plugins(DefaultPlugins)
-        .add_system(bevy::input::system::exit_on_esc_system)
-        .add_plugin(ShadertoyPlugin)
-        .add_plugin(FrameTimeDiagnosticsPlugin::default())
-        .add_plugin(LogDiagnosticsPlugin::default())
-        .add_startup_system(setup)
-        .add_system(update_common_uniform)
-        .run();
-}
-
-// #[derive(Component)]
-// struct ComponentA(f32);
-
-// #[derive(Bundle)]
-// struct MyBundle {
-//     a: ComponentA,
-// }
 
 fn setup(
     mut commands: Commands,
     mut images: ResMut<Assets<Image>>,
-    canvas_size: Res<CanvasSize>,
-    // mut shaders: ResMut<Assets<Shader>>,
+    canvas: Res<ShadertoyCanvas>,
+
     asset_server: Res<AssetServer>,
     windows: Res<Windows>,
-    st_res: Res<ShadertoyResources>,
-    // mut custom_materials: ResMut<Assets<CustomMaterial>>,
 ) {
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
+    // let window = windows.primary();
 
     let mut image = Image::new_fill(
         Extent3d {
-            width: canvas_size.width,
-            height: canvas_size.height,
+            width: canvas.width,
+            height: canvas.height,
             depth_or_array_layers: 1,
         },
         TextureDimension::D2,
@@ -171,10 +89,7 @@ fn setup(
 
     commands.spawn_bundle(SpriteBundle {
         sprite: Sprite {
-            custom_size: Some(Vec2::new(
-                canvas_size.width as f32,
-                canvas_size.height as f32,
-            )),
+            custom_size: Some(Vec2::new(canvas.width as f32, canvas.height as f32)),
             ..default()
         },
         texture: image.clone(),
@@ -184,7 +99,7 @@ fn setup(
         // transform: Transform::from_rotation(bevy::math::Quat::from_rotation_z(
         //     core::f32::consts::PI,
         // )),
-        transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
+        transform: Transform::from_translation(canvas.position),
         ..default()
     });
 
@@ -208,8 +123,8 @@ fn setup(
     // Texture A: equivalent of Buffer A in Shadertoy
     let mut texture_a = Image::new_fill(
         Extent3d {
-            width: canvas_size.width,
-            height: canvas_size.height,
+            width: canvas.width,
+            height: canvas.height,
             depth_or_array_layers: 1,
         },
         TextureDimension::D2,
@@ -230,8 +145,8 @@ fn setup(
     // Texture B: equivalent of Buffer B in Shadertoy
     let mut texture_b = Image::new_fill(
         Extent3d {
-            width: canvas_size.width,
-            height: canvas_size.height,
+            width: canvas.width,
+            height: canvas.height,
             depth_or_array_layers: 1,
         },
         TextureDimension::D2,
@@ -252,8 +167,8 @@ fn setup(
     // Texture C: equivalent of Buffer C in Shadertoy
     let mut texture_c = Image::new_fill(
         Extent3d {
-            width: canvas_size.width,
-            height: canvas_size.height,
+            width: canvas.width,
+            height: canvas.height,
             depth_or_array_layers: 1,
         },
         TextureDimension::D2,
@@ -274,8 +189,8 @@ fn setup(
     // Texture D: equivalent of Buffer D in Shadertoy
     let mut texture_d = Image::new_fill(
         Extent3d {
-            width: canvas_size.width,
-            height: canvas_size.height,
+            width: canvas.width,
+            height: canvas.height,
             depth_or_array_layers: 1,
         },
         TextureDimension::D2,
@@ -292,31 +207,29 @@ fn setup(
 
     // TODO
     // rain: https://www.shadertoy.com/view/wdGSzw
-    // path tracing: https://www.shadertoy.com/view/ssycDR
-    // multisample raycaster: https://www.shadertoy.com/view/Nd3yRX
-    // noise contour: https://www.shadertoy.com/view/MscSzf
-    // multiscale MIP fluid: https://www.shadertoy.com/view/tsKXR3
-    // atmosphere: https://www.shadertoy.com/view/stf3zj
-
     // fix clouds
 
-    // let example = "clouds";
-    // let example = "minimal";
-    // let example = "paint";
-    let example = "paint_streams2";
-    // let example = "seascape";
-    // let example = "fire2";
-    // let example = "fire";
-    // let example = "debugger";
-    // let example = "molecular_dynamics";
-    // let example = "love_and_domination";
-    // let example = "dancing_tree";
-    // let example = "mip_fluid";
+    // // let example = "clouds";
+    // // let example = "minimal";
+    // // let example = "paint";
+    // // let example = "paint_streams2";
+    // // let example = "seascape";
+    // // let example = "sunset";
+    // let example = "fluid";
+    // // let example = "dry_ice";
+    // // let example = "protean_clouds";
 
-    let all_shader_handles: ShaderHandles =
-        make_and_load_shaders2(example, &asset_server, st_res.include_debugger);
+    // // let example = "fire2";
+    // // let example = "fire";
+    // // let example = "debugger";
+    // // let example = "molecular_dynamics";
+    // // let example = "love_and_domination";
+    // // let example = "dancing_tree";
 
-    commands.insert_resource(all_shader_handles);
+    // let all_shader_handles: ShaderHandles =
+    //     make_and_load_shaders2(example, &asset_server, st_res.include_debugger);
+
+    // commands.insert_resource(all_shader_handles);
 }
 
 pub fn make_and_load_shaders(example: &str, asset_server: &Res<AssetServer>) -> ShaderHandles {
@@ -446,6 +359,8 @@ pub struct CommonUniform {
     pub i_channel_time: Vec4,
     pub i_channel_resolution: Vec4,
     pub i_date: [i32; 4],
+
+    pub changed_window_size: f32,
 }
 
 pub struct CommonUniformMeta {
@@ -453,8 +368,8 @@ pub struct CommonUniformMeta {
 }
 
 fn make_new_texture(
-    old_buffer_length: i32,
-    canvas_size: &CanvasSize,
+    // old_buffer_length: i32,
+    canvas_size: &Vec2,
     image_handle: &Handle<Image>,
     images: &mut ResMut<Assets<Image>>,
 ) {
@@ -464,8 +379,8 @@ fn make_new_texture(
         // data soon though.
 
         image.resize(Extent3d {
-            width: canvas_size.width,
-            height: canvas_size.height,
+            width: canvas_size.x as u32,
+            height: canvas_size.y as u32,
             depth_or_array_layers: 1,
         });
     }
@@ -481,7 +396,7 @@ fn update_common_uniform(
     windows: Res<Windows>,
     time: Res<Time>,
     mouse_button_input: Res<Input<MouseButton>>,
-    mut canvas_size: ResMut<CanvasSize>,
+    canvas: ResMut<ShadertoyCanvas>,
     texture_a: Res<TextureA>,
     texture_b: Res<TextureB>,
     texture_c: Res<TextureC>,
@@ -489,47 +404,41 @@ fn update_common_uniform(
     mut frames_accum: ResMut<ShadertoyResources>,
 ) {
     // update resolution
-    for window_resize in window_resize_event.iter() {
-        let old_buffer_length =
-            (common_uniform.i_resolution.x * common_uniform.i_resolution.y) as i32;
+    for _window_resize in window_resize_event.iter() {
+        // canvas_size.width = common_uniform.i_resolution.x as u32;
+        // canvas_size.height = common_uniform.i_resolution.y as u32;
 
-        common_uniform.i_resolution.x = (window_resize.width * BORDERS).floor();
-        common_uniform.i_resolution.y = (window_resize.height * BORDERS).floor();
+        // common_uniform.i_resolution.x = (window_resize.width * (1. - canvas.borders)).floor();
+        // common_uniform.i_resolution.y = (window_resize.height * (1. - canvas.borders)).floor();
 
-        canvas_size.width = common_uniform.i_resolution.x as u32;
-        canvas_size.height = common_uniform.i_resolution.y as u32;
+        common_uniform.i_resolution.x = (canvas.width as f32 * (1. - canvas.borders)).floor();
+        common_uniform.i_resolution.y = (canvas.height as f32 * (1. - canvas.borders)).floor();
+
         for (mut sprite, _, image_handle) in query.iter_mut() {
-            // let pos = transform.translation;
-
             sprite.custom_size = Some(common_uniform.i_resolution);
 
-            make_new_texture(old_buffer_length, &canvas_size, image_handle, &mut images);
-            make_new_texture(old_buffer_length, &canvas_size, &texture_a.0, &mut images);
-            make_new_texture(old_buffer_length, &canvas_size, &texture_b.0, &mut images);
-            make_new_texture(old_buffer_length, &canvas_size, &texture_c.0, &mut images);
-            make_new_texture(old_buffer_length, &canvas_size, &texture_d.0, &mut images);
-
-            // println!("sprite.custom_size : {:?}", sprite.custom_size);
+            make_new_texture(&common_uniform.i_resolution, image_handle, &mut images);
+            make_new_texture(&common_uniform.i_resolution, &texture_a.0, &mut images);
+            make_new_texture(&common_uniform.i_resolution, &texture_b.0, &mut images);
+            make_new_texture(&common_uniform.i_resolution, &texture_c.0, &mut images);
+            make_new_texture(&common_uniform.i_resolution, &texture_d.0, &mut images);
         }
     }
 
     // update mouse position
     let window = windows.primary();
     if let Some(mouse_pos) = window.cursor_position() {
-        let mut mp = mouse_pos;
-        // println!("mp: {:?}", mp);
+        let mp = mouse_pos;
+        // println!("{:?}", mp);
 
         for (_, transform, _) in query.iter() {
             let pos = transform.translation.truncate();
             let window_size = Vec2::new(window.width(), window.height());
             let top_left = pos + (window_size - common_uniform.i_resolution) / 2.0;
 
-            // let bottom_right = top_left + common_uniform.i_resolution;
-
             common_uniform.i_mouse.x = mp.x - top_left.x;
-            // common_uniform.i_mouse.y = common_uniform.i_resolution.y - (mp.y - top_left.y);
-            common_uniform.i_mouse.y = (mp.y - top_left.y);
-            // println!("mouse: {:?}", common_uniform.i_mouse);
+
+            common_uniform.i_mouse.y = mp.y - top_left.y;
 
             if mouse_button_input.just_pressed(MouseButton::Left) {
                 common_uniform.i_mouse.z = common_uniform.i_mouse.x;
@@ -543,21 +452,7 @@ fn update_common_uniform(
                 common_uniform.i_mouse.z = -common_uniform.i_mouse.z.abs();
                 common_uniform.i_mouse.w = -common_uniform.i_mouse.w.abs();
             }
-            // println!("mouse: {:?}", common_uniform.i_mouse);
         }
-
-        // common_uniform.i_mouse.z = if mouse_button_input.pressed(MouseButton::Left) {
-        //     1.0
-        // } else {
-        //     0.0
-        // };
-        // common_uniform.i_mouse.w = if mouse_button_input.just_pressed(MouseButton::Left) {
-        //     1.0
-        // } else {
-        //     0.0
-        // };
-
-        // println!("{:?}", mp);
     }
 
     // update time
@@ -590,8 +485,13 @@ pub struct ShaderHandles {
 
 impl Plugin for ShadertoyPlugin {
     fn build(&self, app: &mut App) {
-        // let mut common_uniform = app.world.resource_mut::<CommonUniform>();
-        // common_uniform.i_frame += 1.0;
+        app.add_startup_system(setup)
+            .add_system(update_common_uniform)
+            .insert_resource(ShadertoyResources {
+                number_of_frames: 0,
+                time_since_reset: 0.0,
+                include_debugger: false,
+            });
 
         let render_app = app.sub_app_mut(RenderApp);
 
@@ -605,23 +505,26 @@ impl Plugin for ShadertoyPlugin {
         });
 
         render_app
+            .insert_resource(ScheduleRunnerSettings::run_loop(Duration::from_secs_f64(
+                1.0 / 120.0,
+            )))
             .insert_resource(CommonUniformMeta {
                 buffer: buffer.clone(),
             })
             .add_system_to_stage(RenderStage::Prepare, prepare_common_uniform)
-            .init_resource::<MainImagePipeline>()
+            .init_resource::<ShadertoyPipelines>()
             .add_system_to_stage(RenderStage::Extract, extract_main_image)
             .add_system_to_stage(RenderStage::Queue, queue_bind_group)
-            .init_resource::<TextureAPipeline>()
+            // .init_resource::<TextureAPipeline>()
             .add_system_to_stage(RenderStage::Extract, extract_texture_a)
             .add_system_to_stage(RenderStage::Queue, queue_bind_group_a)
-            .init_resource::<TextureBPipeline>()
+            // .init_resource::<TextureBPipeline>()
             .add_system_to_stage(RenderStage::Extract, extract_texture_b)
             .add_system_to_stage(RenderStage::Queue, queue_bind_group_b)
-            .init_resource::<TextureCPipeline>()
+            // .init_resource::<TextureCPipeline>()
             .add_system_to_stage(RenderStage::Extract, extract_texture_c)
             .add_system_to_stage(RenderStage::Queue, queue_bind_group_c)
-            .init_resource::<TextureDPipeline>()
+            // .init_resource::<TextureDPipeline>()
             .add_system_to_stage(RenderStage::Extract, extract_texture_d)
             .add_system_to_stage(RenderStage::Queue, queue_bind_group_d);
 
@@ -655,136 +558,243 @@ impl Plugin for ShadertoyPlugin {
     }
 }
 
-pub struct MainImagePipeline {
-    main_image_group_layout: BindGroupLayout,
+// pub struct ShadertoyPipelines {
+//     main_image_group_layout: BindGroupLayout,
+// }
+
+pub struct ShadertoyPipelines {
+    pub main_image_group_layout: BindGroupLayout,
+    pub abcd_group_layout: BindGroupLayout,
 }
 
-impl FromWorld for MainImagePipeline {
-    fn from_world(world: &mut World) -> Self {
-        let main_image_group_layout =
-            world
-                .resource::<RenderDevice>()
-                .create_bind_group_layout(&BindGroupLayoutDescriptor {
-                    label: Some("main_layout"),
-                    entries: &[
-                        BindGroupLayoutEntry {
-                            binding: 0,
-                            visibility: ShaderStages::COMPUTE,
-                            ty: BindingType::Buffer {
-                                ty: BufferBindingType::Uniform,
-                                has_dynamic_offset: false,
-                                min_binding_size: BufferSize::new(
-                                    CommonUniform::std140_size_static() as u64,
-                                ),
-                            },
-                            count: None,
-                        },
-                        BindGroupLayoutEntry {
-                            binding: 1,
-                            visibility: ShaderStages::COMPUTE,
-                            ty: BindingType::StorageTexture {
-                                access: StorageTextureAccess::ReadWrite,
-                                format: TextureFormat::Rgba32Float,
-                                view_dimension: TextureViewDimension::D2,
-                            },
-                            count: None,
-                        },
-                        BindGroupLayoutEntry {
-                            binding: 2,
-                            visibility: ShaderStages::COMPUTE,
-                            ty: BindingType::StorageTexture {
-                                access: StorageTextureAccess::ReadWrite,
-                                format: TextureFormat::Rgba32Float,
-                                view_dimension: TextureViewDimension::D2,
-                            },
-                            count: None,
-                        },
-                        BindGroupLayoutEntry {
-                            binding: 3,
-                            visibility: ShaderStages::COMPUTE,
-                            ty: BindingType::StorageTexture {
-                                access: StorageTextureAccess::ReadWrite,
-                                format: TextureFormat::Rgba32Float,
-                                view_dimension: TextureViewDimension::D2,
-                            },
-                            count: None,
-                        },
-                        BindGroupLayoutEntry {
-                            binding: 4,
-                            visibility: ShaderStages::COMPUTE,
-                            ty: BindingType::StorageTexture {
-                                access: StorageTextureAccess::ReadWrite,
-                                format: TextureFormat::Rgba32Float,
-                                view_dimension: TextureViewDimension::D2,
-                            },
-                            count: None,
-                        },
-                        BindGroupLayoutEntry {
-                            binding: 5,
-                            visibility: ShaderStages::COMPUTE,
-                            ty: BindingType::StorageTexture {
-                                access: StorageTextureAccess::ReadWrite,
-                                format: TextureFormat::Rgba32Float,
-                                view_dimension: TextureViewDimension::D2,
-                            },
-                            count: None,
-                        },
-                        // BindGroupLayoutEntry {
-                        //     binding: 6,
-                        //     visibility: ShaderStages::COMPUTE,
-                        //     ty: BindingType::StorageTexture {
-                        //         access: StorageTextureAccess::ReadWrite,
-                        //         format: TextureFormat::Rgba32Float,
-                        //         view_dimension: TextureViewDimension::D2,
-                        //     },
-                        //     count: None,
-                        // },
-                        BindGroupLayoutEntry {
-                            binding: 6,
-                            visibility: ShaderStages::COMPUTE,
-                            ty: BindingType::Texture {
-                                sample_type: TextureSampleType::Float { filterable: true },
-                                view_dimension: TextureViewDimension::D2,
-                                multisampled: false,
-                            },
-                            count: None,
-                        },
-                        BindGroupLayoutEntry {
-                            binding: 7,
-                            visibility: ShaderStages::COMPUTE,
-                            ty: BindingType::Sampler(SamplerBindingType::Filtering),
-                            count: None,
-                        },
-                        BindGroupLayoutEntry {
-                            binding: 8,
-                            visibility: ShaderStages::COMPUTE,
-                            ty: BindingType::Texture {
-                                sample_type: TextureSampleType::Float { filterable: true },
-                                view_dimension: TextureViewDimension::D2,
-                                multisampled: false,
-                            },
-                            count: None,
-                        },
-                        BindGroupLayoutEntry {
-                            binding: 9,
-                            visibility: ShaderStages::COMPUTE,
-                            ty: BindingType::Sampler(SamplerBindingType::Filtering),
-                            count: None,
-                        },
-                        BindGroupLayoutEntry {
-                            binding: 10,
-                            visibility: ShaderStages::COMPUTE,
-                            ty: BindingType::Sampler(SamplerBindingType::Filtering),
-                            count: None,
-                        },
-                    ],
-                });
+impl ShadertoyPipelines {
+    pub fn make_texture_layout(binding: u32) -> BindGroupLayoutEntry {
+        BindGroupLayoutEntry {
+            binding,
+            visibility: ShaderStages::COMPUTE,
+            ty: BindingType::StorageTexture {
+                access: StorageTextureAccess::ReadWrite,
+                format: TextureFormat::Rgba32Float,
+                view_dimension: TextureViewDimension::D2,
+            },
+            count: None,
+        }
+    }
 
-        MainImagePipeline {
+    pub fn new(render_device: &RenderDevice) -> Self {
+        let uniform_descriptor = BindGroupLayoutEntry {
+            binding: 0,
+            visibility: ShaderStages::COMPUTE,
+            ty: BindingType::Buffer {
+                ty: BufferBindingType::Uniform,
+                has_dynamic_offset: false,
+                min_binding_size: BufferSize::new(CommonUniform::std140_size_static() as u64),
+            },
+            count: None,
+        };
+
+        let abcd_group_layout =
+            render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
+                label: Some("abcd_layout"),
+                entries: &[
+                    uniform_descriptor,
+                    ShadertoyPipelines::make_texture_layout(1),
+                    ShadertoyPipelines::make_texture_layout(2),
+                    ShadertoyPipelines::make_texture_layout(3),
+                    ShadertoyPipelines::make_texture_layout(4),
+                ],
+            });
+
+        let main_image_group_layout =
+            render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
+                label: Some("main_layout"),
+                entries: &[
+                    uniform_descriptor,
+                    ShadertoyPipelines::make_texture_layout(1),
+                    ShadertoyPipelines::make_texture_layout(2),
+                    ShadertoyPipelines::make_texture_layout(3),
+                    ShadertoyPipelines::make_texture_layout(4),
+                    BindGroupLayoutEntry {
+                        binding: 5,
+                        visibility: ShaderStages::COMPUTE,
+                        ty: BindingType::StorageTexture {
+                            access: StorageTextureAccess::ReadWrite,
+                            format: TextureFormat::Rgba32Float,
+                            view_dimension: TextureViewDimension::D2,
+                        },
+                        count: None,
+                    },
+                    // font texture
+                    BindGroupLayoutEntry {
+                        binding: 6,
+                        visibility: ShaderStages::COMPUTE,
+                        ty: BindingType::Texture {
+                            sample_type: TextureSampleType::Float { filterable: true },
+                            view_dimension: TextureViewDimension::D2,
+                            multisampled: false,
+                        },
+                        count: None,
+                    },
+                    BindGroupLayoutEntry {
+                        binding: 7,
+                        visibility: ShaderStages::COMPUTE,
+                        ty: BindingType::Sampler(SamplerBindingType::Filtering),
+                        count: None,
+                    },
+                    // noise texture
+                    BindGroupLayoutEntry {
+                        binding: 8,
+                        visibility: ShaderStages::COMPUTE,
+                        ty: BindingType::Texture {
+                            sample_type: TextureSampleType::Float { filterable: true },
+                            view_dimension: TextureViewDimension::D2,
+                            multisampled: false,
+                        },
+                        count: None,
+                    },
+                    BindGroupLayoutEntry {
+                        binding: 9,
+                        visibility: ShaderStages::COMPUTE,
+                        ty: BindingType::Sampler(SamplerBindingType::Filtering),
+                        count: None,
+                    },
+                ],
+            });
+
+        ShadertoyPipelines {
             main_image_group_layout,
+            abcd_group_layout,
         }
     }
 }
+
+impl FromWorld for ShadertoyPipelines {
+    fn from_world(world: &mut World) -> Self {
+        let render_device = world.resource::<RenderDevice>();
+        ShadertoyPipelines::new(render_device)
+    }
+}
+
+// impl FromWorld for ShadertoyPipelines {
+//     fn from_world(world: &mut World) -> Self {
+//         let main_image_group_layout =
+//             world
+//                 .resource::<RenderDevice>()
+//                 .create_bind_group_layout(&BindGroupLayoutDescriptor {
+//                     label: Some("main_layout"),
+//                     entries: &[
+//                         BindGroupLayoutEntry {
+//                             binding: 0,
+//                             visibility: ShaderStages::COMPUTE,
+//                             ty: BindingType::Buffer {
+//                                 ty: BufferBindingType::Uniform,
+//                                 has_dynamic_offset: false,
+//                                 min_binding_size: BufferSize::new(
+//                                     CommonUniform::std140_size_static() as u64,
+//                                 ),
+//                             },
+//                             count: None,
+//                         },
+//                         BindGroupLayoutEntry {
+//                             binding: 1,
+//                             visibility: ShaderStages::COMPUTE,
+//                             ty: BindingType::StorageTexture {
+//                                 access: StorageTextureAccess::ReadWrite,
+//                                 format: TextureFormat::Rgba32Float,
+//                                 view_dimension: TextureViewDimension::D2,
+//                             },
+//                             count: None,
+//                         },
+//                         BindGroupLayoutEntry {
+//                             binding: 2,
+//                             visibility: ShaderStages::COMPUTE,
+//                             ty: BindingType::StorageTexture {
+//                                 access: StorageTextureAccess::ReadWrite,
+//                                 format: TextureFormat::Rgba32Float,
+//                                 view_dimension: TextureViewDimension::D2,
+//                             },
+//                             count: None,
+//                         },
+//                         BindGroupLayoutEntry {
+//                             binding: 3,
+//                             visibility: ShaderStages::COMPUTE,
+//                             ty: BindingType::StorageTexture {
+//                                 access: StorageTextureAccess::ReadWrite,
+//                                 format: TextureFormat::Rgba32Float,
+//                                 view_dimension: TextureViewDimension::D2,
+//                             },
+//                             count: None,
+//                         },
+//                         BindGroupLayoutEntry {
+//                             binding: 4,
+//                             visibility: ShaderStages::COMPUTE,
+//                             ty: BindingType::StorageTexture {
+//                                 access: StorageTextureAccess::ReadWrite,
+//                                 format: TextureFormat::Rgba32Float,
+//                                 view_dimension: TextureViewDimension::D2,
+//                             },
+//                             count: None,
+//                         },
+//                         BindGroupLayoutEntry {
+//                             binding: 5,
+//                             visibility: ShaderStages::COMPUTE,
+//                             ty: BindingType::StorageTexture {
+//                                 access: StorageTextureAccess::ReadWrite,
+//                                 format: TextureFormat::Rgba32Float,
+//                                 view_dimension: TextureViewDimension::D2,
+//                             },
+//                             count: None,
+//                         },
+//                         // BindGroupLayoutEntry {
+//                         //     binding: 6,
+//                         //     visibility: ShaderStages::COMPUTE,
+//                         //     ty: BindingType::StorageTexture {
+//                         //         access: StorageTextureAccess::ReadWrite,
+//                         //         format: TextureFormat::Rgba32Float,
+//                         //         view_dimension: TextureViewDimension::D2,
+//                         //     },
+//                         //     count: None,
+//                         // },
+//                         BindGroupLayoutEntry {
+//                             binding: 6,
+//                             visibility: ShaderStages::COMPUTE,
+//                             ty: BindingType::Texture {
+//                                 sample_type: TextureSampleType::Float { filterable: true },
+//                                 view_dimension: TextureViewDimension::D2,
+//                                 multisampled: false,
+//                             },
+//                             count: None,
+//                         },
+//                         BindGroupLayoutEntry {
+//                             binding: 7,
+//                             visibility: ShaderStages::COMPUTE,
+//                             ty: BindingType::Sampler(SamplerBindingType::Filtering),
+//                             count: None,
+//                         },
+//                         BindGroupLayoutEntry {
+//                             binding: 8,
+//                             visibility: ShaderStages::COMPUTE,
+//                             ty: BindingType::Texture {
+//                                 sample_type: TextureSampleType::Float { filterable: true },
+//                                 view_dimension: TextureViewDimension::D2,
+//                                 multisampled: false,
+//                             },
+//                             count: None,
+//                         },
+//                         BindGroupLayoutEntry {
+//                             binding: 9,
+//                             visibility: ShaderStages::COMPUTE,
+//                             ty: BindingType::Sampler(SamplerBindingType::Filtering),
+//                             count: None,
+//                         },
+//                     ],
+//                 });
+
+//         ShadertoyPipelines {
+//             main_image_group_layout,
+//         }
+//     }
+// }
 
 #[derive(Deref)]
 struct MainImage(Handle<Image>);
@@ -799,7 +809,9 @@ struct MainImageBindGroup {
 pub fn prepare_common_uniform(
     common_uniform_meta: ResMut<CommonUniformMeta>,
     render_queue: Res<RenderQueue>,
-    common_uniform: Res<CommonUniform>,
+    mut common_uniform: ResMut<CommonUniform>,
+    render_device: Res<RenderDevice>,
+    mut pipelines: ResMut<ShadertoyPipelines>,
 ) {
     use bevy::render::render_resource::std140::Std140;
     let std140_common_uniform = common_uniform.as_std140();
@@ -810,7 +822,15 @@ pub fn prepare_common_uniform(
         0,
         bevy::core::cast_slice(&bytes),
     );
+
+    // modify the pipelines according to the new window size if applicable
+    if common_uniform.changed_window_size > 0.5 {
+        *pipelines = ShadertoyPipelines::new(&render_device);
+        common_uniform.changed_window_size = 0.0;
+    }
 }
+
+pub struct ChangedWindowSize(pub bool);
 
 fn extract_main_image(
     mut commands: Commands,
@@ -818,7 +838,8 @@ fn extract_main_image(
     font_image: ResMut<ShadertoyTextures>,
     common_uniform: Res<CommonUniform>,
     all_shader_handles: Res<ShaderHandles>,
-    canvas_size: Res<CanvasSize>,
+    canvas_size: Res<ShadertoyCanvas>,
+    mut window_resize_event: EventReader<WindowResized>,
 ) {
     // insert common uniform only once
     commands.insert_resource(common_uniform.clone());
@@ -829,12 +850,19 @@ fn extract_main_image(
 
     commands.insert_resource(all_shader_handles.clone());
 
+    let mut changed_window_size = false;
     commands.insert_resource(canvas_size.clone());
+
+    for _ in window_resize_event.iter() {
+        changed_window_size = true;
+    }
+
+    commands.insert_resource(ChangedWindowSize(changed_window_size));
 }
 
 fn queue_bind_group(
     mut commands: Commands,
-    pipeline: Res<MainImagePipeline>,
+    pipeline: Res<ShadertoyPipelines>,
 
     gpu_images: Res<RenderAssets<Image>>,
     shadertoy_textures: Res<ShadertoyTextures>,
@@ -847,7 +875,38 @@ fn queue_bind_group(
     mut pipeline_cache: ResMut<PipelineCache>,
     all_shader_handles: Res<ShaderHandles>,
     common_uniform_meta: ResMut<CommonUniformMeta>,
+    mut changed_size_res: ResMut<ChangedWindowSize>,
+    mut render_graph: ResMut<RenderGraph>,
 ) {
+    if changed_size_res.0 {
+        changed_size_res.0 = false;
+
+        let main_node: &mut MainNode = render_graph
+            .get_node_mut(NodeLabel::Name(Cow::from("main_image")))
+            .unwrap();
+        main_node.state = ShadertoyState::Loading;
+
+        let texture_a_node: &mut TextureANode = render_graph
+            .get_node_mut(NodeLabel::Name(Cow::from("texture_a")))
+            .unwrap();
+        texture_a_node.state = ShadertoyState::Loading;
+
+        let texture_b_node: &mut TextureBNode = render_graph
+            .get_node_mut(NodeLabel::Name(Cow::from("texture_b")))
+            .unwrap();
+        texture_b_node.state = ShadertoyState::Loading;
+
+        let texture_c_node: &mut TextureCNode = render_graph
+            .get_node_mut(NodeLabel::Name(Cow::from("texture_c")))
+            .unwrap();
+        texture_c_node.state = ShadertoyState::Loading;
+
+        let texture_d_node: &mut TextureDNode = render_graph
+            .get_node_mut(NodeLabel::Name(Cow::from("texture_d")))
+            .unwrap();
+        texture_d_node.state = ShadertoyState::Loading;
+    }
+
     let init_pipeline = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
         label: None,
         layout: Some(vec![pipeline.main_image_group_layout.clone()]),
@@ -917,10 +976,6 @@ fn queue_bind_group(
                 binding: 9,
                 resource: BindingResource::Sampler(&rgba_noise_256_view.sampler),
             },
-            BindGroupEntry {
-                binding: 10,
-                resource: BindingResource::Sampler(&main_view.sampler),
-            },
         ],
     });
 
@@ -984,7 +1039,7 @@ impl render_graph::Node for MainNode {
         world: &World,
     ) -> Result<(), render_graph::NodeRunError> {
         let bind_group = world.resource::<MainImageBindGroup>();
-        let canvas_size = world.resource::<CanvasSize>();
+        let canvas_size = world.resource::<ShadertoyCanvas>();
 
         let init_pipeline_cache = bind_group.init_pipeline;
         let update_pipeline_cache = bind_group.update_pipeline;
