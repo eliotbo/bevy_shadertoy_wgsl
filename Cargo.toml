@@ -50,10 +50,6 @@ name = "seascape"
 path = "examples/seascape/seascape.rs"
 
 [[example]]
-name = "molecular_dynamics"
-path = "examples/molecular_dynamics/molecular_dynamics.rs"
-
-[[example]]
 name = "fluid"
 path = "examples/fluid/fluid.rs"
 

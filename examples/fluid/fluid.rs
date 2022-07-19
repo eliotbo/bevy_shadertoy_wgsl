@@ -1,3 +1,7 @@
+// https://www.shadertoy.com/view/XtGcDK
+// by Wyatt
+// License Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License
+
 use bevy::{
     diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
     prelude::*,

@@ -1,3 +1,7 @@
+// https://www.shadertoy.com/view/WtfyDj
+// by michael0884
+// License Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License
+
 use bevy::{
     app::ScheduleRunnerSettings,
     diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},

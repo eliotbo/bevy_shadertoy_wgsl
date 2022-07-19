@@ -1,3 +1,6 @@
+// MIT License
+// Copyright (c) 2019 Dimas Leenman
+
 use bevy::{
     diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
     prelude::*,
