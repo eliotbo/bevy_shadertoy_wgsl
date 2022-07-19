@@ -11,3 +11,5 @@ cargo run --release --features bevy/dynamic --example paint_streams
 
 
 TODO: make compatible with WASM
+
+See the LICENSES file for the individual examples.
