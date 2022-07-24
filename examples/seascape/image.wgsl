@@ -170,7 +170,7 @@ fn getPixel(coord: vec2<f32>, time: f32) -> vec3<f32> {
 	let dist: vec3<f32> = p - ori;
 	let n: vec3<f32> = getNormal(p, dot(dist, dist) * (0.1 / uni.iResolution.x));
 	let light: vec3<f32> = normalize(vec3<f32>(0., 1., 0.8));
-	return mix(getSkyColor(dir), getSeaColor(p, n, light, dir, dist), pow(smoothStep(0., -0.02, dir.y), 0.2));
+	return mix(getSkyColor(dir), getSeaColor(p, n, light, dir, dist), pow(smoothstep(0., -0.02, dir.y), 0.2));
 } 
 
 fn toLinear(sRGB: vec4<f32>) -> vec4<f32> {
@@ -181,8 +181,8 @@ fn toLinear(sRGB: vec4<f32>) -> vec4<f32> {
     return mix(higher, lower, cutoff);
 }
 
-[[stage(compute), workgroup_size(8, 8, 1)]]
-fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
+@compute @workgroup_size(8, 8, 1)
+fn update(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     let R: vec2<f32> = uni.iResolution.xy;
     let y_inverted_location = vec2<i32>(i32(invocation_id.x), i32(R.y) - i32(invocation_id.y));
     let location = vec2<i32>(i32(invocation_id.x), i32(invocation_id.y));

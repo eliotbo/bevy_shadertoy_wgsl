@@ -4,19 +4,34 @@
 //! the uniform and the bindings, which add about 50 lines of code
 
 use bevy::{
-    core_pipeline::node::MAIN_PASS_DEPENDENCIES,
+    // core::{Pod, Zeroable},
+
+    // core_pipeline::node::MAIN_PASS_DEPENDENCIES,
     prelude::*,
     render::{
+        extract_resource::{ExtractResource, ExtractResourcePlugin},
         render_asset::RenderAssets,
         render_graph::{self, NodeLabel, RenderGraph},
+        // render_resource::ShaderSize,
         // render_resource::*,
-        render_resource::{std140::AsStd140, *},
+        render_resource::{
+            encase::private::WriteInto, BindGroup, BindGroupDescriptor, BindGroupEntry,
+            BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingResource,
+            BindingType, Buffer, BufferBindingType, BufferDescriptor, BufferSize, BufferUsages,
+            CachedComputePipelineId, CachedPipelineState, ComputePassDescriptor,
+            ComputePipelineDescriptor, Extent3d, PipelineCache, SamplerBindingType, ShaderStages,
+            ShaderType, StorageTextureAccess, TextureDimension, TextureFormat, TextureSampleType,
+            TextureUsages, TextureViewDimension,
+        },
         renderer::{RenderContext, RenderDevice, RenderQueue},
+        MainWorld,
         RenderApp,
         RenderStage,
     },
     window::WindowResized,
 };
+
+use crevice::std140::AsStd140;
 
 use bevy::{app::ScheduleRunnerSettings, utils::Duration};
 
@@ -39,7 +54,7 @@ pub const WORKGROUP_SIZE: u32 = 8;
 pub const NUM_PARTICLES: u32 = 256;
 // pub const BORDERS: f32 = 1.0;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, ExtractResource, Debug)]
 pub struct ShadertoyCanvas {
     pub width: u32,
     pub height: u32,
@@ -47,12 +62,13 @@ pub struct ShadertoyCanvas {
     pub position: Vec3,
 }
 
-#[derive(Clone)]
+#[derive(Clone, ExtractResource)]
 pub struct ShadertoyTextures {
     font_texture_handle: Handle<Image>,
     rgba_noise_256_handle: Handle<Image>,
 }
 
+#[derive(Clone, ExtractResource)]
 pub struct ShadertoyResources {
     number_of_frames: u32,
     time_since_reset: f32,
@@ -67,7 +83,7 @@ fn setup(
     asset_server: Res<AssetServer>,
     windows: Res<Windows>,
 ) {
-    commands.spawn_bundle(OrthographicCameraBundle::new_2d());
+    commands.spawn_bundle(Camera2dBundle::default());
     // let window = windows.primary();
 
     let mut image = Image::new_fill(
@@ -84,6 +100,8 @@ fn setup(
         TextureUsages::COPY_DST | TextureUsages::STORAGE_BINDING | TextureUsages::TEXTURE_BINDING;
 
     let image = images.add(image);
+
+    commands.insert_resource(ChangedWindowSize(false));
 
     commands.insert_resource(MainImage(image.clone()));
 
@@ -111,7 +129,7 @@ fn setup(
     });
 
     let window = windows.primary();
-    let mut common_uniform = CommonUniform::default();
+    let mut common_uniform = CommonUniform::new();
 
     common_uniform.i_resolution.x = window.width();
     common_uniform.i_resolution.y = window.height();
@@ -346,22 +364,149 @@ fn format_and_save_shader(example: &str, buffer_type: &str, include_debugger: bo
 // uniform vec4      iDate;                 // (year, month, day, time in seconds)
 // uniform float     iSampleRate;           // sound sample rate (i.e., 44100)
 
-#[derive(Component, Default, Clone, AsStd140)]
+// use bytemuck::{Pod, Zeroable};
+// #[derive(Clone, Copy, bevy::render::render_resource::ShaderType)]
+#[derive(Clone, Copy)]
 pub struct CommonUniform {
+    pub i_resolution: Vec2,
+    pub changed_window_size: f32,
+    pub padding0: f32,
+
     pub i_time: f32,
     pub i_time_delta: f32,
     pub i_frame: f32,
     pub i_sample_rate: f32, // sound sample rate
 
     pub i_mouse: Vec4,
-    pub i_resolution: Vec2,
 
     pub i_channel_time: Vec4,
     pub i_channel_resolution: Vec4,
-    pub i_date: [i32; 4],
-
-    pub changed_window_size: f32,
+    pub i_date: Vec4,
 }
+
+impl CommonUniform {
+    pub fn new() -> Self {
+        Self {
+            i_resolution: Vec2::ZERO,
+            changed_window_size: 0.0,
+            padding0: 0.0,
+
+            i_time: 0.,
+            i_time_delta: 0.,
+            i_frame: 0.,
+            i_sample_rate: 0.,
+
+            i_mouse: Vec4::ZERO,
+
+            i_channel_time: Vec4::ZERO,
+            i_channel_resolution: Vec4::ZERO,
+            i_date: Vec4::ZERO,
+        }
+    }
+
+    pub fn into_crevice(&self) -> CommonUniformCrevice {
+        CommonUniformCrevice {
+            i_resolution: crevice::std140::Vec2 {
+                x: self.i_resolution.x,
+                y: self.i_resolution.y,
+            },
+
+            changed_window_size: self.changed_window_size,
+            padding0: self.padding0,
+
+            i_time: self.i_time,
+            i_time_delta: self.i_time_delta,
+            i_frame: self.i_frame,
+            i_sample_rate: self.i_sample_rate,
+
+            i_mouse: crevice::std140::Vec4 {
+                x: self.i_mouse.x,
+                y: self.i_mouse.y,
+                z: self.i_mouse.z,
+                w: self.i_mouse.w,
+            },
+
+            i_channel_time: crevice::std140::Vec4 {
+                x: self.i_channel_time.x,
+                y: self.i_channel_time.y,
+                z: self.i_channel_time.z,
+                w: self.i_channel_time.w,
+            },
+            i_channel_resolution: crevice::std140::Vec4 {
+                x: self.i_channel_resolution.x,
+                y: self.i_channel_resolution.y,
+                z: self.i_channel_resolution.z,
+                w: self.i_channel_resolution.w,
+            },
+            i_date: crevice::std140::Vec4 {
+                x: self.i_date.x,
+                y: self.i_date.y,
+                z: self.i_date.z,
+                w: self.i_date.w,
+            },
+        }
+    }
+}
+
+#[derive(Clone, Copy, AsStd140)]
+pub struct CommonUniformCrevice {
+    pub i_resolution: crevice::std140::Vec2,
+    pub changed_window_size: f32,
+    pub padding0: f32,
+
+    pub i_time: f32,
+    pub i_time_delta: f32,
+    pub i_frame: f32,
+    pub i_sample_rate: f32, // sound sample rate
+
+    pub i_mouse: crevice::std140::Vec4,
+
+    pub i_channel_time: crevice::std140::Vec4,
+    pub i_channel_resolution: crevice::std140::Vec4,
+    pub i_date: crevice::std140::Vec4,
+}
+
+#[derive(Deref)]
+pub struct ExtractedUniform(pub CommonUniformCrevice);
+
+impl ExtractResource for ExtractedUniform {
+    type Source = CommonUniform;
+
+    fn extract_resource(common_uniform: &Self::Source) -> Self {
+        ExtractedUniform(common_uniform.into_crevice().clone())
+    }
+}
+
+// pub struct ExtractedTextures {
+//     pub a: TextureA,
+//     pub b: TextureB,
+//     pub c: TextureC,
+//     pub d: TextureD,
+// }
+
+// impl ExtractResource for ExtractedTextures {
+//     type Source = (TextureA, TextureB, TextureC, TextureD);
+
+//     fn extract_resource(textures: &Self::Source) -> Self {
+//         ExtractedTextures {
+//             a: TextureA(textures.0.clone()),
+//             b: TextureB(textures.1.clone()),
+//             c: TextureC(textures.2.clone()),
+//             d: TextureD(textures.3.clone()),
+//         }
+//     }
+// }
+
+// #[derive(Deref)]
+// pub struct ExtractedTextureA(TextureA);
+
+// impl ExtractResource for ExtractedTextureA {
+//     type Source = TextureA;
+
+//     fn extract_resource(texture: &Self::Source) -> Self {
+//         ExtractedTextureA(TextureA(texture.0.clone()))
+//     }
+// }
 
 pub struct CommonUniformMeta {
     buffer: Buffer,
@@ -402,8 +547,10 @@ fn update_common_uniform(
     texture_c: Res<TextureC>,
     texture_d: Res<TextureD>,
     mut frames_accum: ResMut<ShadertoyResources>,
+    mut changed_window_size: ResMut<ChangedWindowSize>,
 ) {
     // update resolution
+    changed_window_size.0 = false;
     for _window_resize in window_resize_event.iter() {
         // canvas_size.width = common_uniform.i_resolution.x as u32;
         // canvas_size.height = common_uniform.i_resolution.y as u32;
@@ -413,6 +560,7 @@ fn update_common_uniform(
 
         common_uniform.i_resolution.x = (canvas.width as f32 * (1. - canvas.borders)).floor();
         common_uniform.i_resolution.y = (canvas.height as f32 * (1. - canvas.borders)).floor();
+        changed_window_size.0 = true;
 
         for (mut sprite, _, image_handle) in query.iter_mut() {
             sprite.custom_size = Some(common_uniform.i_resolution);
@@ -474,7 +622,7 @@ fn update_common_uniform(
 
 pub struct ShadertoyPlugin;
 
-#[derive(Clone)]
+#[derive(Clone, ExtractResource)]
 pub struct ShaderHandles {
     pub image_shader: Handle<Shader>,
     pub texture_a_shader: Handle<Shader>,
@@ -485,7 +633,18 @@ pub struct ShaderHandles {
 
 impl Plugin for ShadertoyPlugin {
     fn build(&self, app: &mut App) {
-        app.add_startup_system(setup)
+        app.add_plugin(ExtractResourcePlugin::<ExtractedUniform>::default())
+            .add_plugin(ExtractResourcePlugin::<TextureA>::default())
+            .add_plugin(ExtractResourcePlugin::<TextureB>::default())
+            .add_plugin(ExtractResourcePlugin::<TextureC>::default())
+            .add_plugin(ExtractResourcePlugin::<TextureD>::default())
+            .add_plugin(ExtractResourcePlugin::<MainImage>::default())
+            .add_plugin(ExtractResourcePlugin::<ChangedWindowSize>::default())
+            .add_plugin(ExtractResourcePlugin::<ShadertoyResources>::default())
+            .add_plugin(ExtractResourcePlugin::<ShadertoyTextures>::default())
+            .add_plugin(ExtractResourcePlugin::<ShaderHandles>::default())
+            .add_plugin(ExtractResourcePlugin::<ShadertoyCanvas>::default())
+            .add_startup_system(setup)
             .add_system(update_common_uniform)
             .insert_resource(ShadertoyResources {
                 number_of_frames: 0,
@@ -499,7 +658,7 @@ impl Plugin for ShadertoyPlugin {
 
         let buffer = render_device.create_buffer(&BufferDescriptor {
             label: Some("common uniform buffer"),
-            size: CommonUniform::std140_size_static() as u64,
+            size: std::mem::size_of::<f32>() as u64 * 25,
             usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
@@ -513,19 +672,19 @@ impl Plugin for ShadertoyPlugin {
             })
             .add_system_to_stage(RenderStage::Prepare, prepare_common_uniform)
             .init_resource::<ShadertoyPipelines>()
-            .add_system_to_stage(RenderStage::Extract, extract_main_image)
+            // .add_system_to_stage(RenderStage::Extract, extract_stuff_here)
             .add_system_to_stage(RenderStage::Queue, queue_bind_group)
             // .init_resource::<TextureAPipeline>()
-            .add_system_to_stage(RenderStage::Extract, extract_texture_a)
+            // .add_system_to_stage(RenderStage::Extract, extract_texture_a)
             .add_system_to_stage(RenderStage::Queue, queue_bind_group_a)
             // .init_resource::<TextureBPipeline>()
-            .add_system_to_stage(RenderStage::Extract, extract_texture_b)
+            // .add_system_to_stage(RenderStage::Extract, extract_texture_b)
             .add_system_to_stage(RenderStage::Queue, queue_bind_group_b)
             // .init_resource::<TextureCPipeline>()
-            .add_system_to_stage(RenderStage::Extract, extract_texture_c)
+            // .add_system_to_stage(RenderStage::Extract, extract_texture_c)
             .add_system_to_stage(RenderStage::Queue, queue_bind_group_c)
             // .init_resource::<TextureDPipeline>()
-            .add_system_to_stage(RenderStage::Extract, extract_texture_d)
+            // .add_system_to_stage(RenderStage::Extract, extract_texture_d)
             .add_system_to_stage(RenderStage::Queue, queue_bind_group_d);
 
         let mut render_graph = render_app.world.resource_mut::<RenderGraph>();
@@ -553,7 +712,7 @@ impl Plugin for ShadertoyPlugin {
             .unwrap();
 
         render_graph
-            .add_node_edge("main_image", MAIN_PASS_DEPENDENCIES)
+            .add_node_edge("main_image", bevy::render::main_graph::node::CAMERA_DRIVER)
             .unwrap();
     }
 }
@@ -588,7 +747,7 @@ impl ShadertoyPipelines {
             ty: BindingType::Buffer {
                 ty: BufferBindingType::Uniform,
                 has_dynamic_offset: false,
-                min_binding_size: BufferSize::new(CommonUniform::std140_size_static() as u64),
+                min_binding_size: BufferSize::new(std::mem::size_of::<f32>() as u64 * 25),
             },
             count: None,
         };
@@ -796,8 +955,10 @@ impl FromWorld for ShadertoyPipelines {
 //     }
 // }
 
-#[derive(Deref)]
+#[derive(Deref, Clone, ExtractResource)]
 struct MainImage(Handle<Image>);
+
+// use bevy::core::cast_slice;
 
 struct MainImageBindGroup {
     main_image_bind_group: BindGroup,
@@ -809,42 +970,64 @@ struct MainImageBindGroup {
 pub fn prepare_common_uniform(
     common_uniform_meta: ResMut<CommonUniformMeta>,
     render_queue: Res<RenderQueue>,
-    mut common_uniform: ResMut<CommonUniform>,
+    mut extrated_common_uniform_crevice: ResMut<ExtractedUniform>,
+    // mut extracted_uniform: ResMut<ExtractedUniform>,
     render_device: Res<RenderDevice>,
     mut pipelines: ResMut<ShadertoyPipelines>,
 ) {
-    use bevy::render::render_resource::std140::Std140;
-    let std140_common_uniform = common_uniform.as_std140();
+    // // use bevy::render::render_resource::std140::Std140;
+    let std140_common_uniform = extrated_common_uniform_crevice.0.as_std140();
     let bytes = std140_common_uniform.as_bytes();
 
+    // let mut uni = extracted_uniform.0;
+    // let blah = uni.write_into::<Buffer>(*common_uniform_meta.buffer);
+    // let as_bytes = bevy::core::cast_slice([uni.clone()]);
+
+    // let as_bytes = &uni.0.to_owned().
+
+    // TODO: HOW TO ACTUALLY SERIALIZE THE UNIFORM
     render_queue.write_buffer(
         &common_uniform_meta.buffer,
         0,
-        bevy::core::cast_slice(&bytes),
+        bytes,
+        // as_bytes,
+        // bytemuck::cast_slice(as_bytes),
+        // bevy::core::cast_slice(&bytes),
     );
 
+    // TODO: DO THIS IN THE EXTRACT PHASE?
     // modify the pipelines according to the new window size if applicable
-    if common_uniform.changed_window_size > 0.5 {
+    if extrated_common_uniform_crevice.changed_window_size > 0.5 {
         *pipelines = ShadertoyPipelines::new(&render_device);
-        common_uniform.changed_window_size = 0.0;
     }
 }
 
+#[derive(Deref, Clone, ExtractResource)]
 pub struct ChangedWindowSize(pub bool);
 
-fn extract_main_image(
+fn extract_stuff_here(
+    // mut world: &mut MainWorld,
     mut commands: Commands,
     image: Res<MainImage>,
     font_image: ResMut<ShadertoyTextures>,
-    common_uniform: Res<CommonUniform>,
+    // common_uniform: Res<CommonUniform>,
     all_shader_handles: Res<ShaderHandles>,
     canvas_size: Res<ShadertoyCanvas>,
     mut window_resize_event: EventReader<WindowResized>,
+    // texture_a_image: Res<TextureA>,
+    // texture_b_image: Res<TextureB>,
+    // texture_c_image: Res<TextureC>,
+    // texture_d_image: Res<TextureD>,
 ) {
-    // insert common uniform only once
-    commands.insert_resource(common_uniform.clone());
+    // // insert common uniform only once
+    // // commands.insert_resource(common_uniform.clone());
 
-    commands.insert_resource(MainImage(image.clone()));
+    // // commands.insert_resource(MainImage(image.clone()));
+
+    //     // commands.insert_resource(texture_a_image.clone());
+    // // commands.insert_resource(texture_b_image.clone());
+    // // commands.insert_resource(texture_c_image.clone());
+    // // commands.insert_resource(texture_d_image.clone());
 
     commands.insert_resource(font_image.clone());
 
@@ -858,6 +1041,19 @@ fn extract_main_image(
     }
 
     commands.insert_resource(ChangedWindowSize(changed_window_size));
+
+    // world.insert_resource(font_image.clone());
+
+    // world.insert_resource(all_shader_handles.clone());
+
+    // let mut changed_window_size = false;
+    // world.insert_resource(canvas_size.clone());
+
+    // for _ in window_resize_event.iter() {
+    //     changed_window_size = true;
+    // }
+
+    // world.insert_resource(ChangedWindowSize(changed_window_size));
 }
 
 fn queue_bind_group(
@@ -871,6 +1067,7 @@ fn queue_bind_group(
     texture_b_image: Res<TextureB>,
     texture_c_image: Res<TextureC>,
     texture_d_image: Res<TextureD>,
+    // textures: Res<ExtractedTextures>,
     render_device: Res<RenderDevice>,
     mut pipeline_cache: ResMut<PipelineCache>,
     all_shader_handles: Res<ShaderHandles>,
@@ -879,8 +1076,6 @@ fn queue_bind_group(
     mut render_graph: ResMut<RenderGraph>,
 ) {
     if changed_size_res.0 {
-        changed_size_res.0 = false;
-
         let main_node: &mut MainNode = render_graph
             .get_node_mut(NodeLabel::Name(Cow::from("main_image")))
             .unwrap();
@@ -931,6 +1126,11 @@ fn queue_bind_group(
     let texture_b_view = &gpu_images[&texture_b_image.0];
     let texture_c_view = &gpu_images[&texture_c_image.0];
     let texture_d_view = &gpu_images[&texture_d_image.0];
+
+    // let texture_a_view = &gpu_images[&textures.a.0];
+    // let texture_b_view = &gpu_images[&textures.b.0];
+    // let texture_c_view = &gpu_images[&textures.c.0];
+    // let texture_d_view = &gpu_images[&textures.d.0];
 
     let main_image_bind_group = render_device.create_bind_group(&BindGroupDescriptor {
         label: Some("main_bind_group"),
@@ -1063,7 +1263,7 @@ impl render_graph::Node for MainNode {
                     .get_compute_pipeline(init_pipeline_cache)
                     .unwrap();
                 pass.set_pipeline(init_pipeline);
-                pass.dispatch(
+                pass.dispatch_workgroups(
                     canvas_size.width / WORKGROUP_SIZE,
                     canvas_size.height / WORKGROUP_SIZE,
                     1,
@@ -1075,7 +1275,7 @@ impl render_graph::Node for MainNode {
                     .get_compute_pipeline(update_pipeline_cache)
                     .unwrap();
                 pass.set_pipeline(update_pipeline);
-                pass.dispatch(
+                pass.dispatch_workgroups(
                     canvas_size.width / WORKGROUP_SIZE,
                     canvas_size.height / WORKGROUP_SIZE,
                     1,

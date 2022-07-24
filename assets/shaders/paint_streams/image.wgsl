@@ -1,76 +1,59 @@
 struct CommonUniform {
-    iTime: f32;
-    iTimeDelta: f32;
-    iFrame: f32;
-    iSampleRate: f32;
+    iResolution: vec2<f32>,
+    changed_window_size: f32,
+    padding0: f32,
     
-    iMouse: vec4<f32>;
-    iResolution: vec2<f32>;
+    iTime: f32,
+    iTimeDelta: f32,
+    iFrame: f32,
+    iSampleRate: f32,
+    
+    iMouse: vec4<f32>,
+    
 
-    iChannelTime: vec4<f32>;
-    iChannelResolution: vec4<f32>;
-    iDate: vec4<i32>;
+    iChannelTime: vec4<f32>,
+    iChannelResolution: vec4<f32>,
+    iDate: vec4<f32>,
 };
 
-[[group(0), binding(0)]]
+
+@group(0) @binding(0)
 var<uniform> uni: CommonUniform;
 
-[[group(0), binding(1)]]
+@group(0) @binding(1)
 var buffer_a: texture_storage_2d<rgba32float, read_write>;
 
-[[group(0), binding(2)]]
+@group(0) @binding(2)
 var buffer_b: texture_storage_2d<rgba32float, read_write>;
 
-[[group(0), binding(3)]]
+@group(0) @binding(3)
 var buffer_c: texture_storage_2d<rgba32float, read_write>;
 
-[[group(0), binding(4)]]
+@group(0) @binding(4)
 var buffer_d: texture_storage_2d<rgba32float, read_write>;
 
 
 
-// [[group(0), binding(1)]]
-// var buffer_a: texture_storage_2d<rgba32float, read_write>;
-
-// [[group(0), binding(2)]]
-// var buffer_b: texture_storage_2d<rgba32float, read_write>;
-
-// [[group(0), binding(3)]]
-// var buffer_c: texture_storage_2d<rgba32float, read_write>;
-
-// [[group(0), binding(4)]]
-// var buffer_d: texture_storage_2d<rgba32float, read_write>;
-
-[[group(0), binding(5)]]
+@group(0) @binding(5)
 var texture: texture_storage_2d<rgba32float, read_write>;
 
 // [[group(0), binding(6)]]
 // var font_texture: texture_storage_2d<rgba32float, read_write>;
 
-[[group(0), binding(6)]]
+@group(0) @binding(6)
 var font_texture: texture_2d<f32>;
 
-[[group(0), binding(7)]]
+@group(0) @binding(7)
 var font_texture_sampler: sampler;
 
-[[group(0), binding(8)]]
+@group(0) @binding(8)
 var rgba_noise_256_texture: texture_2d<f32>;
 
-[[group(0), binding(9)]]
+@group(0) @binding(9)
 var rgba_noise_256_texture_sampler: sampler;
 
 
-
-// [[stage(compute), workgroup_size(8, 8, 1)]]
-// fn init([[builtin(global_invocation_id)]] invocation_id: vec3<u32>, [[builtin(num_workgroups)]] num_workgroups: vec3<u32>) {
-//     let location = vec2<i32>(i32(invocation_id.x), i32(invocation_id.y));
-//     let location_f32 = vec2<f32>(f32(invocation_id.x), f32(invocation_id.y));
-
-//     let color = vec4<f32>(f32(0));
-//     textureStore(texture, location, color);
-// }
-
-// Why are the characters so pixelated? 
+// Why are the charaacters so pixelated? 
 // One possible reason is that we are in a compute shader and the textures are not
 // filtered.
 
@@ -94,13 +77,13 @@ let mxColorDebug: vec3<f32> = vec3<f32>(1., 0., 0.);
 let myColorDebug: vec3<f32> = vec3<f32>(0., 1., 0.);
 let font_png_size_debug: vec2<f32> = vec2<f32>(1023.0, 1023.0);
 
-fn char(ch: i32) -> f32 {
+fn chara(ch: i32) -> f32 {
 
     let fr = fract(floor(vec2<f32>(f32(ch), 15.999 - f32(ch) / 16.)) / 16.);
 	let q = clamp(tp_debug, vec2<f32>(0.), vec2<f32>(1.)) / 16. + fr ;
 	let inverted_q = vec2<f32>(q.x, 1. - q.y);
 
-	// // There is aliasing on the characters
+	// // There is aliasing on the charaacters
 	// let f = textureSampleGrad(font_texture,
     //                  font_texture_sampler,
     //                  inverted_q,
@@ -144,7 +127,7 @@ fn drawFract(value: ptr<function, f32>, digits:  ptr<function, i32>) -> f32 {
 	*value = fract(*value) * 10.;
 
 	for (var ni: i32 = 1; ni < 60; ni = ni + 1) {
-		c = c + (char(48 + i32(*value)));
+		c = c + (chara(48 + i32(*value)));
 		tp_debug.x = tp_debug.x - (0.5);
 		*digits = *digits - (1);
 		*value = fract(*value) * 10.;
@@ -173,7 +156,7 @@ fn drawInt(value: ptr<function, i32>,  minDigits: ptr<function, i32>) -> f32 {
 		} else { 
 			*minDigits = *minDigits - 1;
 		}
-		c = c + (char(45));
+		c = c + (chara(45));
 		tp_debug.x = tp_debug.x - (FONT_SPACE_DEBUG);
 
 	}
@@ -191,7 +174,7 @@ fn drawInt(value: ptr<function, i32>,  minDigits: ptr<function, i32>) -> f32 {
 
 	for (var ni: i32 = 1; ni < 11; ni = ni + 1) {
 		tp_debug.x = tp_debug.x + (0.5);
-		c = c + (char(48 + *value % 10));
+		c = c + (chara(48 + *value % 10));
 		*value = *value / (10);
 		if (ni >= digits) {		break; }
 	}
@@ -212,7 +195,7 @@ fn drawIntBackwards(value: ptr<function, i32>,  minDigits: ptr<function, i32>) -
 			*minDigits = *minDigits - 1;
 		}
 		// tp_debug.x = tp_debug.x + (FONT_SPACE_DEBUG);
-		// c = c + (char(45));
+		// c = c + (chara(45));
 		
 
 	}
@@ -230,14 +213,14 @@ fn drawIntBackwards(value: ptr<function, i32>,  minDigits: ptr<function, i32>) -
 
 	for (var ni: i32 = digits - 1; ni < 11; ni = ni - 1) {
 		tp_debug.x = tp_debug.x + (0.5);
-		c = c + (char(48 + *value % 10));
+		c = c + (chara(48 + *value % 10));
 		*value = *value / (10);
 		if (ni == 0) {		break; }
 	}
 
 	if (original_value < 0) {
 		tp_debug.x = tp_debug.x + (FONT_SPACE_DEBUG);
-		c = c + (char(45));
+		c = c + (chara(45));
 	}
 
 	// tp_debug.x = tp_debug.x + (0.5 * f32(digits));
@@ -252,7 +235,7 @@ fn drawFloat(val: f32, prec: ptr<function, i32>, maxDigits: i32) -> f32 {
 	let tp_debugx: f32 = tp_debug.x - 0.5 * f32(maxDigits);
 	var c: f32 = 0.;
 	if (value < 0.) {
-		c = char(45);
+		c = chara(45);
 		value = -value;
 	}
 	tp_debug.x = tp_debug.x - (0.5);
@@ -261,7 +244,7 @@ fn drawFloat(val: f32, prec: ptr<function, i32>, maxDigits: i32) -> f32 {
     var one: i32 = 1;
 
 	c = c + (drawInt(&ival, &one));
-	c = c + (char(46));
+	c = c + (chara(46));
 	tp_debug.x = tp_debug.x - (FONT_SPACE_DEBUG);
 
     var frac_val = fract(value);
@@ -338,15 +321,15 @@ fn WriteFPS()  {
 	var max_digits_one = 1;
 	WriteFloat(fps, 5, &max_digits_one);
 	var c: f32 = 0.;
-	c = c + (char(102));
+	c = c + (chara(102));
 	tp_debug.x = tp_debug.x - (FONT_SPACE_DEBUG);
 
-	c = c + (char(112));
+	c = c + (chara(112));
 	tp_debug.x = tp_debug.x - (FONT_SPACE_DEBUG);
 
-	c = c + (char(115));
+	c = c + (chara(115));
 	tp_debug.x = tp_debug.x - (FONT_SPACE_DEBUG);
-	// let c2 = smoothStep(0.0, 1.0, c );
+	// let c2 = smoothstep(0.0, 1.0, c );
 
 	vColor = mix(vColor, drawColorDebug, c);
 } 
@@ -446,9 +429,9 @@ fn WriteRGBAValues(
 		10. *  (box_pos.x +1. + lspace) + poz.x, 
 		10. * (-box_pos.y +1.) - 0.0 + poz.y
 	) ;
-	c = c + (char(114)); // r
+	c = c + (chara(114)); // r
 	tp_debug.x = tp_debug.x - (FONT_SPACE_DEBUG);
-	c = c + (char(58)); // colon
+	c = c + (chara(58)); // colon
 	tp_debug.x = tp_debug.x - (FONT_SPACE_DEBUG);
 	WriteFloatBox(value.r, 3, decimal_places, alpha );
 
@@ -457,9 +440,9 @@ fn WriteRGBAValues(
 		10. *  ((box_pos.x +1. + lspace)) + poz.x, 
 		10. * (-box_pos.y +1. ) + 1.0 + poz.y,
 	) ;
-	c = c + (char(103)); // g
+	c = c + (chara(103)); // g
 	tp_debug.x = tp_debug.x - (FONT_SPACE_DEBUG);
-	c = c + (char(58)); // colon
+	c = c + (chara(58)); // colon
 	tp_debug.x = tp_debug.x - (FONT_SPACE_DEBUG);
 	WriteFloatBox(value.g, 3, decimal_places, alpha );
 
@@ -468,9 +451,9 @@ fn WriteRGBAValues(
 		10. *  (box_pos.x +1. + lspace) + poz.x, 
 		10. * (-box_pos.y +1. ) + 2.0 + poz.y,
 		) ;
-	c = c + (char(98)); // b
+	c = c + (chara(98)); // b
 	tp_debug.x = tp_debug.x - (FONT_SPACE_DEBUG);
-	c = c + (char(58)); // colon
+	c = c + (chara(58)); // colon
 	tp_debug.x = tp_debug.x - (FONT_SPACE_DEBUG);
 	WriteFloatBox(value.b, 4, decimal_places, alpha );
 
@@ -479,9 +462,9 @@ fn WriteRGBAValues(
 		10. *  (box_pos.x +1. + lspace) + poz.x, 
 		10. * (-box_pos.y +1. ) + 3.0 + poz.y,
 	) ;
-	c = c + (char(97)); // a
+	c = c + (chara(97)); // a
 	tp_debug.x = tp_debug.x - (FONT_SPACE_DEBUG);
-	c = c + (char(58)); // colon
+	c = c + (chara(58)); // colon
 	tp_debug.x = tp_debug.x - (FONT_SPACE_DEBUG);
 	WriteFloatBox(value.a, 4, decimal_places, alpha );
 
@@ -496,7 +479,7 @@ fn sdSegment(p: vec2<f32>, a: vec2<f32>, b: vec2<f32>) -> f32 {
 }
 
 fn ring(pos: vec2<f32>, radius: f32, thick: f32) -> f32 {
-	return mix(1., 0., smoothStep(thick, thick + 0.01, abs(length(uv_debug - pos) - radius)));
+	return mix(1., 0., smoothstep(thick, thick + 0.01, abs(length(uv_debug - pos) - radius)));
 } 
 
 fn sdCircle(p: vec2<f32>, c: vec2<f32>, r: f32) -> f32 {
@@ -509,7 +492,7 @@ fn draw_ring(location: vec2<i32>) {
 
 	let alpha = 0.75;
 	let ring_dist = sdCircle(vec2<f32>(location) , mouse_click_poz, 2.3);
-	let d = smoothStep(0.5, 1.5, abs(ring_dist - 1.));
+	let d = smoothstep(0.5, 1.5, abs(ring_dist - 1.));
 	vColor = mix(vColor, headColorDebug,   (1. - d) * alpha );
 }
 
@@ -546,16 +529,16 @@ fn draw_crossair(location: vec2<i32>)  {
 		alpha = 1.0;
 	}
 
-	let d = smoothStep(0.5, 1.5, segment1);
+	let d = smoothstep(0.5, 1.5, segment1);
 	vColor = mix(vColor, headColorDebug, (1.0 -  d) * alpha );
 
-	let d = smoothStep(0.5, 1.5, segment2);
+	let d = smoothstep(0.5, 1.5, segment2);
 	vColor = mix(vColor, headColorDebug, (1.0 -  d) * alpha );
 
-	let d = smoothStep(0.5, 1.5, segment3);
+	let d = smoothstep(0.5, 1.5, segment3);
 	vColor = mix(vColor, headColorDebug, (1.0 -  d) * alpha );
 
-	let d = smoothStep(0.5, 1.5, segment4);
+	let d = smoothstep(0.5, 1.5, segment4);
 	vColor = mix(vColor, headColorDebug, (1.0 -  d) * alpha );
 }
 
@@ -595,7 +578,7 @@ fn show_debug_info(location: vec2<i32>, color: vec3<f32>) -> vec4<f32> {
 
 
 	WriteIntegerBack(&resx);
-	c = c + (char(28));
+	c = c + (chara(28));
 	tp_debug.x = tp_debug.x + 0. * (FONT_SPACE_DEBUG);
 	WriteIntegerBack(&resy);
 
@@ -708,17 +691,17 @@ fn sdBox(p: vec2<f32>, b: vec2<f32>) -> f32 {
 // 	return uintBitsToFloat(X);
 // } 
 
-// fn decode(&self, place: u8, precision: u8) -> f32 {
-//     let value_u32 = self >> (place - precision);
+// fn decode(&self, place: u8, precis: u8) -> f32 {
+//     let value_u32 = self >> (place - precis);
 
 //     let mut mask = u32::MAX;
-//     if precision < 32 {
-//         mask = (1 << (precision)) - 1;
+//     if precis < 32 {
+//         mask = (1 << (precis)) - 1;
 //     }
 
 //     // println!("mask: {:#0b}", value_u32);
 //     let masked_value_u32 = value_u32 & mask;
-//     let value_f32 = masked_value_u32 as f32 / ((1u32 << (precision - 1u8)) as f32);
+//     let value_f32 = masked_value_u32 as f32 / ((1u32 << (precis - 1u8)) as f32);
 
 //     value_f32
 // }
@@ -746,16 +729,16 @@ fn encode(x: vec2<f32>) -> f32 {
 
 
 
-fn decode2(input: u32, place: u32, precision: u32) -> f32 {
-    let value_u32 = input >> (place - precision);
+fn decode2(input: u32, place: u32, precis: u32) -> f32 {
+    let value_u32 = input >> (place - precis);
 
     var mask: u32 = 4294967295u;
-    if (precision < 32u) {
-        mask = (1u << precision) - 1u;
+    if (precis < 32u) {
+        mask = (1u << precis) - 1u;
     }
 
     let masked_value_u32 = value_u32 & mask;
-    let max_val = 1u << (precision - 1u);
+    let max_val = 1u << (precis - 1u);
     let value_f32 = f32(masked_value_u32) / f32(max_val) ;
 
     return value_f32;
@@ -768,17 +751,17 @@ fn decode1uToVec2(q: f32) -> vec2<f32> {
     return vec2<f32>(x, y) * 2. - 1.;
 }
 
-fn encode2(value: f32, input2: u32, place: u32, precision: u32) -> u32 {
+fn encode2(value: f32, input2: u32, place: u32, precis: u32) -> u32 {
     var input = input2;
-    // let value_f32_normalized = value * f32(1u, 32u << (precision - 1u)) ;
-    let value_f32_normalized = value * f32((1u << (precision - 1u)));
-    let delta_bits = u32(place - precision);
+    // let value_f32_normalized = value * f32(1u, 32u << (precis - 1u)) ;
+    let value_f32_normalized = value * f32((1u << (precis - 1u)));
+    let delta_bits = u32(place - precis);
     let value_u32 = u32(value_f32_normalized) << delta_bits;
 
     var mask: u32 = 0u;
 
-    if (precision < 32u) {
-        mask = 4294967295u - (((1u << precision) - 1u) << (place - precision));
+    if (precis < 32u) {
+        mask = 4294967295u - (((1u << precis) - 1u) << (place - precis));
     }
 
     let input = (input2 & mask) | value_u32;
@@ -796,9 +779,9 @@ fn encodeVec2To1u(value: vec2<f32>) -> u32 {
 }
 
 struct particle {
-	X: vec2<f32>;
-	V: vec2<f32>;
-	M: vec2<f32>;
+	X: vec2<f32>,
+	V: vec2<f32>,
+	M: vec2<f32>,
 };
 
 fn getParticle(data: vec4<f32>, pos: vec2<f32>) -> particle {
@@ -857,11 +840,11 @@ fn distribution(x: vec2<f32>, p: vec2<f32>, K: f32) -> vec3<f32> {
     return vec3<f32>(0.5 * (omin + omax), (omax.x - omin.x) * (omax.y - omin.y) / (K * K));
 } 
 
-struct particle {
-	X: vec2<f32>;
-	V: vec2<f32>;
-	M: vec2<f32>;
-};
+// struct particle {
+// 	X: vec2<f32>,
+// 	V: vec2<f32>,
+// 	M: vec2<f32>,
+// };
 
 // fn fromLinear(linearRGB: vec4<f32>) -> vec4<f32> {
 //     let cutoff: vec4<f32> = vec4<f32>(linearRGB < vec4<f32>(0.0031308));
@@ -917,8 +900,8 @@ fn bN(p: vec2<f32>, R2: vec2<f32>) -> vec3<f32> {
     return vec3<f32>(normalize(r.xy), r.z + 1.0e-4);
 } 
 
-[[stage(compute), workgroup_size(8, 8, 1)]]
-fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
+@compute @workgroup_size(8, 8, 1)
+fn update(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     R = uni.iResolution.xy;
     let y_inverted_location = vec2<i32>(i32(invocation_id.x), i32(R.y) - i32(invocation_id.y));
     let location = vec2<i32>(i32(invocation_id.x), i32(invocation_id.y));
@@ -935,7 +918,7 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
 
     var P: particle = getParticle(data, pos);
     let Nb: vec3<f32> = bN(P.X, R);
-    let bord: f32 = smoothStep(2. * border_h, border_h * 0.5, border(pos, R));
+    let bord: f32 = smoothstep(2. * border_h, border_h * 0.5, border(pos, R));
     let rho: vec4<f32> = V(pos);
     let dx: vec3<f32> = vec3<f32>(-2., 0., 2.);
     let grad: vec4<f32> = -0.5 * vec4<f32>(V(pos + dx.zy).zw - V(pos + dx.xy).zw, V(pos + dx.yz).zw - V(pos + dx.yx).zw);
@@ -944,8 +927,8 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
 
     let specularb: f32 = G(0.4 * (Nb.zz - border_h)) * pow(max(dot(Nb.xy, Dir(1.4)), 0.), 3.);
 
-    let a: f32 = pow(smoothStep(fluid_rho * 0., fluid_rho * 2., rho.z), 0.1);
-    let b: f32 = exp(-1.7 * smoothStep(fluid_rho * 1., fluid_rho * 7.5, rho.z));
+    let a: f32 = pow(smoothstep(fluid_rho * 0., fluid_rho * 2., rho.z), 0.1);
+    let b: f32 = exp(-1.7 * smoothstep(fluid_rho * 1., fluid_rho * 7.5, rho.z));
     let col0: vec3<f32> = vec3<f32>(1., 0.5, 0.);
     let col1: vec3<f32> = vec3<f32>(0.1, 0.4, 1.);
     let fcol: vec3<f32> = mixN(col0, col1, tanh(3. * (rho.w - 0.7)) * 0.5 + 0.5);

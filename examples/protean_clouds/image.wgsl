@@ -120,8 +120,8 @@ fn iLerp(a: vec3<f32>, b: vec3<f32>, x: f32) -> vec3<f32> {
 	return clamp(ic, vec3<f32>(0.), vec3<f32>(1.));
 } 
 
-[[stage(compute), workgroup_size(8, 8, 1)]]
-fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
+@compute @workgroup_size(8, 8, 1)
+fn update(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     let R: vec2<f32> = uni.iResolution.xy;
     let y_inverted_location = vec2<i32>(i32(invocation_id.x), i32(R.y) - i32(invocation_id.y));
     let location = vec2<i32>(i32(invocation_id.x), i32(invocation_id.y));
@@ -141,17 +141,17 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
 	ro.x = roxy.x;
 	ro.y = roxy.y;
 	let tgtDst: f32 = 3.5;
-	let target: vec3<f32> = normalize(ro - vec3<f32>(disp(time + tgtDst) * dspAmp, time + tgtDst));
+	let targt: vec3<f32> = normalize(ro - vec3<f32>(disp(time + tgtDst) * dspAmp, time + tgtDst));
 	ro.x = ro.x - (bsMo.x * 2.);
-	var rightdir: vec3<f32> = normalize(cross(target, vec3<f32>(0., 1., 0.)));
-	let updir: vec3<f32> = normalize(cross(rightdir, target));
-	rightdir = normalize(cross(updir, target));
-	var rd: vec3<f32> = normalize((p.x * rightdir + p.y * updir) * 1. - target);
+	var rightdir: vec3<f32> = normalize(cross(targt, vec3<f32>(0., 1., 0.)));
+	let updir: vec3<f32> = normalize(cross(rightdir, targt));
+	rightdir = normalize(cross(updir, targt));
+	var rd: vec3<f32> = normalize((p.x * rightdir + p.y * updir) * 1. - targt);
 	var rdxy = rd.xy;
 	rdxy = rd.xy * (rot(-disp(time + 3.5).x * 0.2 + bsMo.x));
 	rd.x = rdxy.x;
 	rd.y = rdxy.y;
-	prm1 = smoothStep(-0.4, 0.4, sin(uni.iTime * 0.3));
+	prm1 = smoothstep(-0.4, 0.4, sin(uni.iTime * 0.3));
 	let scn: vec4<f32> = render(ro, rd, time);
 	var col: vec3<f32> = scn.rgb;
 	col = iLerp(col.bgr, col.rgb, clamp(1. - prm1, 0.05, 1.));

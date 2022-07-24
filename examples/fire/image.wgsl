@@ -37,8 +37,8 @@ fn fbm(uv_in: vec2<f32>) -> f32 {
 	return f;
 } 
 
-[[stage(compute), workgroup_size(8, 8, 1)]]
-fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
+@compute @workgroup_size(8, 8, 1)
+fn update(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     let R: vec2<f32> = uni.iResolution.xy;
     let y_inverted_location = vec2<i32>(i32(invocation_id.x), i32(R.y) - i32(invocation_id.y));
     let location = vec2<i32>(i32(invocation_id.x), i32(invocation_id.y));

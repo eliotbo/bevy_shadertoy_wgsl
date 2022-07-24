@@ -1,4 +1,4 @@
-// Why are the characters so pixelated? 
+// Why are the charaacters so pixelated? 
 // One possible reason is that we are in a compute shader and the textures are not
 // filtered.
 
@@ -22,13 +22,13 @@ let mxColorDebug: vec3<f32> = vec3<f32>(1., 0., 0.);
 let myColorDebug: vec3<f32> = vec3<f32>(0., 1., 0.);
 let font_png_size_debug: vec2<f32> = vec2<f32>(1023.0, 1023.0);
 
-fn char(ch: i32) -> f32 {
+fn chara(ch: i32) -> f32 {
 
     let fr = fract(floor(vec2<f32>(f32(ch), 15.999 - f32(ch) / 16.)) / 16.);
 	let q = clamp(tp_debug, vec2<f32>(0.), vec2<f32>(1.)) / 16. + fr ;
 	let inverted_q = vec2<f32>(q.x, 1. - q.y);
 
-	// // There is aliasing on the characters
+	// // There is aliasing on the charaacters
 	// let f = textureSampleGrad(font_texture,
     //                  font_texture_sampler,
     //                  inverted_q,
@@ -72,7 +72,7 @@ fn drawFract(value: ptr<function, f32>, digits:  ptr<function, i32>) -> f32 {
 	*value = fract(*value) * 10.;
 
 	for (var ni: i32 = 1; ni < 60; ni = ni + 1) {
-		c = c + (char(48 + i32(*value)));
+		c = c + (chara(48 + i32(*value)));
 		tp_debug.x = tp_debug.x - (0.5);
 		*digits = *digits - (1);
 		*value = fract(*value) * 10.;
@@ -101,7 +101,7 @@ fn drawInt(value: ptr<function, i32>,  minDigits: ptr<function, i32>) -> f32 {
 		} else { 
 			*minDigits = *minDigits - 1;
 		}
-		c = c + (char(45));
+		c = c + (chara(45));
 		tp_debug.x = tp_debug.x - (FONT_SPACE_DEBUG);
 
 	}
@@ -119,7 +119,7 @@ fn drawInt(value: ptr<function, i32>,  minDigits: ptr<function, i32>) -> f32 {
 
 	for (var ni: i32 = 1; ni < 11; ni = ni + 1) {
 		tp_debug.x = tp_debug.x + (0.5);
-		c = c + (char(48 + *value % 10));
+		c = c + (chara(48 + *value % 10));
 		*value = *value / (10);
 		if (ni >= digits) {		break; }
 	}
@@ -140,7 +140,7 @@ fn drawIntBackwards(value: ptr<function, i32>,  minDigits: ptr<function, i32>) -
 			*minDigits = *minDigits - 1;
 		}
 		// tp_debug.x = tp_debug.x + (FONT_SPACE_DEBUG);
-		// c = c + (char(45));
+		// c = c + (chara(45));
 		
 
 	}
@@ -158,14 +158,14 @@ fn drawIntBackwards(value: ptr<function, i32>,  minDigits: ptr<function, i32>) -
 
 	for (var ni: i32 = digits - 1; ni < 11; ni = ni - 1) {
 		tp_debug.x = tp_debug.x + (0.5);
-		c = c + (char(48 + *value % 10));
+		c = c + (chara(48 + *value % 10));
 		*value = *value / (10);
 		if (ni == 0) {		break; }
 	}
 
 	if (original_value < 0) {
 		tp_debug.x = tp_debug.x + (FONT_SPACE_DEBUG);
-		c = c + (char(45));
+		c = c + (chara(45));
 	}
 
 	// tp_debug.x = tp_debug.x + (0.5 * f32(digits));
@@ -180,7 +180,7 @@ fn drawFloat(val: f32, prec: ptr<function, i32>, maxDigits: i32) -> f32 {
 	let tp_debugx: f32 = tp_debug.x - 0.5 * f32(maxDigits);
 	var c: f32 = 0.;
 	if (value < 0.) {
-		c = char(45);
+		c = chara(45);
 		value = -value;
 	}
 	tp_debug.x = tp_debug.x - (0.5);
@@ -189,7 +189,7 @@ fn drawFloat(val: f32, prec: ptr<function, i32>, maxDigits: i32) -> f32 {
     var one: i32 = 1;
 
 	c = c + (drawInt(&ival, &one));
-	c = c + (char(46));
+	c = c + (chara(46));
 	tp_debug.x = tp_debug.x - (FONT_SPACE_DEBUG);
 
     var frac_val = fract(value);
@@ -266,15 +266,15 @@ fn WriteFPS()  {
 	var max_digits_one = 1;
 	WriteFloat(fps, 5, &max_digits_one);
 	var c: f32 = 0.;
-	c = c + (char(102));
+	c = c + (chara(102));
 	tp_debug.x = tp_debug.x - (FONT_SPACE_DEBUG);
 
-	c = c + (char(112));
+	c = c + (chara(112));
 	tp_debug.x = tp_debug.x - (FONT_SPACE_DEBUG);
 
-	c = c + (char(115));
+	c = c + (chara(115));
 	tp_debug.x = tp_debug.x - (FONT_SPACE_DEBUG);
-	// let c2 = smoothStep(0.0, 1.0, c );
+	// let c2 = smoothstep(0.0, 1.0, c );
 
 	vColor = mix(vColor, drawColorDebug, c);
 } 
@@ -374,9 +374,9 @@ fn WriteRGBAValues(
 		10. *  (box_pos.x +1. + lspace) + poz.x, 
 		10. * (-box_pos.y +1.) - 0.0 + poz.y
 	) ;
-	c = c + (char(114)); // r
+	c = c + (chara(114)); // r
 	tp_debug.x = tp_debug.x - (FONT_SPACE_DEBUG);
-	c = c + (char(58)); // colon
+	c = c + (chara(58)); // colon
 	tp_debug.x = tp_debug.x - (FONT_SPACE_DEBUG);
 	WriteFloatBox(value.r, 3, decimal_places, alpha );
 
@@ -385,9 +385,9 @@ fn WriteRGBAValues(
 		10. *  ((box_pos.x +1. + lspace)) + poz.x, 
 		10. * (-box_pos.y +1. ) + 1.0 + poz.y,
 	) ;
-	c = c + (char(103)); // g
+	c = c + (chara(103)); // g
 	tp_debug.x = tp_debug.x - (FONT_SPACE_DEBUG);
-	c = c + (char(58)); // colon
+	c = c + (chara(58)); // colon
 	tp_debug.x = tp_debug.x - (FONT_SPACE_DEBUG);
 	WriteFloatBox(value.g, 3, decimal_places, alpha );
 
@@ -396,9 +396,9 @@ fn WriteRGBAValues(
 		10. *  (box_pos.x +1. + lspace) + poz.x, 
 		10. * (-box_pos.y +1. ) + 2.0 + poz.y,
 		) ;
-	c = c + (char(98)); // b
+	c = c + (chara(98)); // b
 	tp_debug.x = tp_debug.x - (FONT_SPACE_DEBUG);
-	c = c + (char(58)); // colon
+	c = c + (chara(58)); // colon
 	tp_debug.x = tp_debug.x - (FONT_SPACE_DEBUG);
 	WriteFloatBox(value.b, 4, decimal_places, alpha );
 
@@ -407,9 +407,9 @@ fn WriteRGBAValues(
 		10. *  (box_pos.x +1. + lspace) + poz.x, 
 		10. * (-box_pos.y +1. ) + 3.0 + poz.y,
 	) ;
-	c = c + (char(97)); // a
+	c = c + (chara(97)); // a
 	tp_debug.x = tp_debug.x - (FONT_SPACE_DEBUG);
-	c = c + (char(58)); // colon
+	c = c + (chara(58)); // colon
 	tp_debug.x = tp_debug.x - (FONT_SPACE_DEBUG);
 	WriteFloatBox(value.a, 4, decimal_places, alpha );
 
@@ -424,7 +424,7 @@ fn sdSegment(p: vec2<f32>, a: vec2<f32>, b: vec2<f32>) -> f32 {
 }
 
 fn ring(pos: vec2<f32>, radius: f32, thick: f32) -> f32 {
-	return mix(1., 0., smoothStep(thick, thick + 0.01, abs(length(uv_debug - pos) - radius)));
+	return mix(1., 0., smoothstep(thick, thick + 0.01, abs(length(uv_debug - pos) - radius)));
 } 
 
 fn sdCircle(p: vec2<f32>, c: vec2<f32>, r: f32) -> f32 {
@@ -437,7 +437,7 @@ fn draw_ring(location: vec2<i32>) {
 
 	let alpha = 0.75;
 	let ring_dist = sdCircle(vec2<f32>(location) , mouse_click_poz, 2.3);
-	let d = smoothStep(0.5, 1.5, abs(ring_dist - 1.));
+	let d = smoothstep(0.5, 1.5, abs(ring_dist - 1.));
 	vColor = mix(vColor, headColorDebug,   (1. - d) * alpha );
 }
 
@@ -474,16 +474,16 @@ fn draw_crossair(location: vec2<i32>)  {
 		alpha = 1.0;
 	}
 
-	let d = smoothStep(0.5, 1.5, segment1);
+	let d = smoothstep(0.5, 1.5, segment1);
 	vColor = mix(vColor, headColorDebug, (1.0 -  d) * alpha );
 
-	let d = smoothStep(0.5, 1.5, segment2);
+	let d = smoothstep(0.5, 1.5, segment2);
 	vColor = mix(vColor, headColorDebug, (1.0 -  d) * alpha );
 
-	let d = smoothStep(0.5, 1.5, segment3);
+	let d = smoothstep(0.5, 1.5, segment3);
 	vColor = mix(vColor, headColorDebug, (1.0 -  d) * alpha );
 
-	let d = smoothStep(0.5, 1.5, segment4);
+	let d = smoothstep(0.5, 1.5, segment4);
 	vColor = mix(vColor, headColorDebug, (1.0 -  d) * alpha );
 }
 
@@ -523,7 +523,7 @@ fn show_debug_info(location: vec2<i32>, color: vec3<f32>) -> vec4<f32> {
 
 
 	WriteIntegerBack(&resx);
-	c = c + (char(28));
+	c = c + (chara(28));
 	tp_debug.x = tp_debug.x + 0. * (FONT_SPACE_DEBUG);
 	WriteIntegerBack(&resy);
 

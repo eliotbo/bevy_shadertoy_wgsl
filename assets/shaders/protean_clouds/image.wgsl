@@ -1,74 +1,57 @@
 struct CommonUniform {
-    iTime: f32;
-    iTimeDelta: f32;
-    iFrame: f32;
-    iSampleRate: f32;
+    iResolution: vec2<f32>,
+    changed_window_size: f32,
+    padding0: f32,
     
-    iMouse: vec4<f32>;
-    iResolution: vec2<f32>;
+    iTime: f32,
+    iTimeDelta: f32,
+    iFrame: f32,
+    iSampleRate: f32,
+    
+    iMouse: vec4<f32>,
+    
 
-    iChannelTime: vec4<f32>;
-    iChannelResolution: vec4<f32>;
-    iDate: vec4<i32>;
+    iChannelTime: vec4<f32>,
+    iChannelResolution: vec4<f32>,
+    iDate: vec4<f32>,
 };
 
-[[group(0), binding(0)]]
+
+@group(0) @binding(0)
 var<uniform> uni: CommonUniform;
 
-[[group(0), binding(1)]]
+@group(0) @binding(1)
 var buffer_a: texture_storage_2d<rgba32float, read_write>;
 
-[[group(0), binding(2)]]
+@group(0) @binding(2)
 var buffer_b: texture_storage_2d<rgba32float, read_write>;
 
-[[group(0), binding(3)]]
+@group(0) @binding(3)
 var buffer_c: texture_storage_2d<rgba32float, read_write>;
 
-[[group(0), binding(4)]]
+@group(0) @binding(4)
 var buffer_d: texture_storage_2d<rgba32float, read_write>;
 
 
 
-// [[group(0), binding(1)]]
-// var buffer_a: texture_storage_2d<rgba32float, read_write>;
-
-// [[group(0), binding(2)]]
-// var buffer_b: texture_storage_2d<rgba32float, read_write>;
-
-// [[group(0), binding(3)]]
-// var buffer_c: texture_storage_2d<rgba32float, read_write>;
-
-// [[group(0), binding(4)]]
-// var buffer_d: texture_storage_2d<rgba32float, read_write>;
-
-[[group(0), binding(5)]]
+@group(0) @binding(5)
 var texture: texture_storage_2d<rgba32float, read_write>;
 
 // [[group(0), binding(6)]]
 // var font_texture: texture_storage_2d<rgba32float, read_write>;
 
-[[group(0), binding(6)]]
+@group(0) @binding(6)
 var font_texture: texture_2d<f32>;
 
-[[group(0), binding(7)]]
+@group(0) @binding(7)
 var font_texture_sampler: sampler;
 
-[[group(0), binding(8)]]
+@group(0) @binding(8)
 var rgba_noise_256_texture: texture_2d<f32>;
 
-[[group(0), binding(9)]]
+@group(0) @binding(9)
 var rgba_noise_256_texture_sampler: sampler;
 
-
-
-// [[stage(compute), workgroup_size(8, 8, 1)]]
-// fn init([[builtin(global_invocation_id)]] invocation_id: vec3<u32>, [[builtin(num_workgroups)]] num_workgroups: vec3<u32>) {
-//     let location = vec2<i32>(i32(invocation_id.x), i32(invocation_id.y));
-//     let location_f32 = vec2<f32>(f32(invocation_id.x), f32(invocation_id.y));
-
-//     let color = vec4<f32>(f32(0));
-//     textureStore(texture, location, color);
-// }
 
 
 
@@ -196,8 +179,8 @@ fn iLerp(a: vec3<f32>, b: vec3<f32>, x: f32) -> vec3<f32> {
 	return clamp(ic, vec3<f32>(0.), vec3<f32>(1.));
 } 
 
-[[stage(compute), workgroup_size(8, 8, 1)]]
-fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
+@compute @workgroup_size(8, 8, 1)
+fn update(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     let R: vec2<f32> = uni.iResolution.xy;
     let y_inverted_location = vec2<i32>(i32(invocation_id.x), i32(R.y) - i32(invocation_id.y));
     let location = vec2<i32>(i32(invocation_id.x), i32(invocation_id.y));
@@ -217,17 +200,17 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
 	ro.x = roxy.x;
 	ro.y = roxy.y;
 	let tgtDst: f32 = 3.5;
-	let target: vec3<f32> = normalize(ro - vec3<f32>(disp(time + tgtDst) * dspAmp, time + tgtDst));
+	let targt: vec3<f32> = normalize(ro - vec3<f32>(disp(time + tgtDst) * dspAmp, time + tgtDst));
 	ro.x = ro.x - (bsMo.x * 2.);
-	var rightdir: vec3<f32> = normalize(cross(target, vec3<f32>(0., 1., 0.)));
-	let updir: vec3<f32> = normalize(cross(rightdir, target));
-	rightdir = normalize(cross(updir, target));
-	var rd: vec3<f32> = normalize((p.x * rightdir + p.y * updir) * 1. - target);
+	var rightdir: vec3<f32> = normalize(cross(targt, vec3<f32>(0., 1., 0.)));
+	let updir: vec3<f32> = normalize(cross(rightdir, targt));
+	rightdir = normalize(cross(updir, targt));
+	var rd: vec3<f32> = normalize((p.x * rightdir + p.y * updir) * 1. - targt);
 	var rdxy = rd.xy;
 	rdxy = rd.xy * (rot(-disp(time + 3.5).x * 0.2 + bsMo.x));
 	rd.x = rdxy.x;
 	rd.y = rdxy.y;
-	prm1 = smoothStep(-0.4, 0.4, sin(uni.iTime * 0.3));
+	prm1 = smoothstep(-0.4, 0.4, sin(uni.iTime * 0.3));
 	let scn: vec4<f32> = render(ro, rd, time);
 	var col: vec3<f32> = scn.rgb;
 	col = iLerp(col.bgr, col.rgb, clamp(1. - prm1, 0.05, 1.));

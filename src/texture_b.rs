@@ -1,10 +1,11 @@
 use bevy::{
     prelude::*,
     render::{
+        extract_resource::ExtractResource,
         render_asset::RenderAssets,
         render_graph::{self},
         // render_resource::*,
-        render_resource::{std140::AsStd140, *},
+        render_resource::*,
         renderer::{RenderContext, RenderDevice},
     },
 };
@@ -26,7 +27,7 @@ struct TextureBBindGroup {
     update_pipeline: CachedComputePipelineId,
 }
 
-#[derive(Deref)]
+#[derive(Clone, Deref, ExtractResource)]
 pub struct TextureB(pub Handle<Image>);
 
 // pub struct TextureBPipeline {
@@ -101,9 +102,9 @@ pub struct TextureB(pub Handle<Image>);
 //     }
 // }
 
-pub fn extract_texture_b(mut commands: Commands, image: Res<TextureB>) {
-    commands.insert_resource(TextureB(image.clone()));
-}
+// pub fn extract_texture_b(mut commands: Commands, image: Res<TextureB>) {
+//     commands.insert_resource(TextureB(image.clone()));
+// }
 
 pub fn queue_bind_group_b(
     mut commands: Commands,
@@ -245,7 +246,7 @@ impl render_graph::Node for TextureBNode {
                     .get_compute_pipeline(init_pipeline_cache)
                     .unwrap();
                 pass.set_pipeline(init_pipeline);
-                pass.dispatch(
+                pass.dispatch_workgroups(
                     canvas_size.width / WORKGROUP_SIZE,
                     canvas_size.height / WORKGROUP_SIZE,
                     1,
@@ -257,7 +258,7 @@ impl render_graph::Node for TextureBNode {
                     .get_compute_pipeline(update_pipeline_cache)
                     .unwrap();
                 pass.set_pipeline(update_pipeline);
-                pass.dispatch(
+                pass.dispatch_workgroups(
                     canvas_size.width / WORKGROUP_SIZE,
                     canvas_size.height / WORKGROUP_SIZE,
                     1,

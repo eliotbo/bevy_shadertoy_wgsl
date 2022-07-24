@@ -1,30 +1,35 @@
 struct CommonUniform {
-    iTime: f32;
-    iTimeDelta: f32;
-    iFrame: f32;
-    iSampleRate: f32;
+    iResolution: vec2<f32>,
+    changed_window_size: f32,
+    padding0: f32,
     
-    iMouse: vec4<f32>;
-    iResolution: vec2<f32>;
+    iTime: f32,
+    iTimeDelta: f32,
+    iFrame: f32,
+    iSampleRate: f32,
+    
+    iMouse: vec4<f32>,
+    
 
-    iChannelTime: vec4<f32>;
-    iChannelResolution: vec4<f32>;
-    iDate: vec4<i32>;
+    iChannelTime: vec4<f32>,
+    iChannelResolution: vec4<f32>,
+    iDate: vec4<f32>,
 };
 
-[[group(0), binding(0)]]
+
+@group(0) @binding(0)
 var<uniform> uni: CommonUniform;
 
-[[group(0), binding(1)]]
+@group(0) @binding(1)
 var buffer_a: texture_storage_2d<rgba32float, read_write>;
 
-[[group(0), binding(2)]]
+@group(0) @binding(2)
 var buffer_b: texture_storage_2d<rgba32float, read_write>;
 
-[[group(0), binding(3)]]
+@group(0) @binding(3)
 var buffer_c: texture_storage_2d<rgba32float, read_write>;
 
-[[group(0), binding(4)]]
+@group(0) @binding(4)
 var buffer_d: texture_storage_2d<rgba32float, read_write>;
 
 
@@ -36,7 +41,7 @@ fn hue(v: f32) -> vec4<f32> {
 }
 
 fn smoothit(v: f32) -> f32 {
-    return smoothStep(1.5, 0., v);
+    return smoothstep(1.5, 0., v);
 }
 
 fn sdSegment(p: vec2<f32>, a: vec2<f32>, b: vec2<f32>) -> f32 {
@@ -128,8 +133,8 @@ fn sdCircle(p: vec2<f32>, c: vec2<f32>, r: f32) -> f32 {
 //     # endif
 // }
 
-[[stage(compute), workgroup_size(8, 8, 1)]]
-fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
+@compute @workgroup_size(8, 8, 1)
+fn update(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     let R: vec2<f32> = uni.iResolution.xy;
     let location = vec2<i32>(i32(invocation_id.x), i32(invocation_id.y));
     // let location = vec2<i32>(i32(invocation_id.x), i32(invocation_id.y));
@@ -180,7 +185,7 @@ fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
         let mouse_pix = vec2<f32>(uni.iMouse.x, uni.iMouse.y);
 
         let brush_sdf = sdCircle(vec2<f32>(location), mouse_pix, 10.0);
-        let brush_d = smoothStep(0.0, 5.0, brush_sdf);
+        let brush_d = smoothstep(0.0, 5.0, brush_sdf);
         let brush_intensity = 0.1;
         O = mix(O, brush_color, (1.0 - brush_d) * brush_intensity);
     }

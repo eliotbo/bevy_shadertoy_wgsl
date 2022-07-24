@@ -1,4 +1,4 @@
-// Why are the characters so pixelated? 
+// Why are the charaacters so pixelated? 
 // One possible reason is that we are in a compute shader and the textures are not
 // filtered.
 
@@ -31,13 +31,13 @@
 // let font_png_size: vec2<f32> = vec2<f32>(1023.0, 1023.0);
 
 
-// fn char(ch: i32) -> f32 {
+// fn chara(ch: i32) -> f32 {
 
 //     let fr = fract(floor(vec2<f32>(f32(ch), 15.999 - f32(ch) / 16.)) / 16.);
 // 	let q = clamp(tp, v2(0.), v2(1.)) / 16. + fr ;
 // 	let inverted_q = v2(q.x, 1. - q.y);
 
-// 	// // There is aliasing on the characters
+// 	// // There is aliasing on the charaacters
 // 	// let f = textureSampleGrad(font_texture,
 //     //                  font_texture_sampler,
 //     //                  inverted_q,
@@ -81,7 +81,7 @@
 // 	*value = fract(*value) * 10.;
 
 // 	for (var ni: i32 = 1; ni < 60; ni = ni + 1) {
-// 		c = c + (char(48 + i32(*value)));
+// 		c = c + (chara(48 + i32(*value)));
 // 		tp.x = tp.x - (0.5);
 // 		*digits = *digits - (1);
 // 		*value = fract(*value) * 10.;
@@ -110,7 +110,7 @@
 // 		} else { 
 // 			*minDigits = *minDigits - 1;
 // 		}
-// 		c = c + (char(45));
+// 		c = c + (chara(45));
 // 		tp.x = tp.x - (FONT_SPACE);
 
 // 	}
@@ -128,7 +128,7 @@
 
 // 	for (var ni: i32 = 1; ni < 11; ni = ni + 1) {
 // 		tp.x = tp.x + (0.5);
-// 		c = c + (char(48 + *value % 10));
+// 		c = c + (chara(48 + *value % 10));
 // 		*value = *value / (10);
 // 		if (ni >= digits) {		break; }
 // 	}
@@ -149,7 +149,7 @@
 // 			*minDigits = *minDigits - 1;
 // 		}
 // 		// tp.x = tp.x + (FONT_SPACE);
-// 		// c = c + (char(45));
+// 		// c = c + (chara(45));
 		
 
 // 	}
@@ -167,14 +167,14 @@
 
 // 	for (var ni: i32 = digits - 1; ni < 11; ni = ni - 1) {
 // 		tp.x = tp.x + (0.5);
-// 		c = c + (char(48 + *value % 10));
+// 		c = c + (chara(48 + *value % 10));
 // 		*value = *value / (10);
 // 		if (ni == 0) {		break; }
 // 	}
 
 // 	if (original_value < 0) {
 // 		tp.x = tp.x + (FONT_SPACE);
-// 		c = c + (char(45));
+// 		c = c + (chara(45));
 // 	}
 
 // 	// tp.x = tp.x + (0.5 * f32(digits));
@@ -189,7 +189,7 @@
 // 	let tpx: f32 = tp.x - 0.5 * f32(maxDigits);
 // 	var c: f32 = 0.;
 // 	if (value < 0.) {
-// 		c = char(45);
+// 		c = chara(45);
 // 		value = -value;
 // 	}
 // 	tp.x = tp.x - (0.5);
@@ -198,7 +198,7 @@
 //     var one: i32 = 1;
 
 // 	c = c + (drawInt(&ival, &one));
-// 	c = c + (char(46));
+// 	c = c + (chara(46));
 // 	tp.x = tp.x - (FONT_SPACE);
 
 //     var frac_val = fract(value);
@@ -275,15 +275,15 @@
 // 	var max_digits_one = 1;
 // 	WriteFloat(fps, 5, &max_digits_one);
 // 	var c: f32 = 0.;
-// 	c = c + (char(102));
+// 	c = c + (chara(102));
 // 	tp.x = tp.x - (FONT_SPACE);
 
-// 	c = c + (char(112));
+// 	c = c + (chara(112));
 // 	tp.x = tp.x - (FONT_SPACE);
 
-// 	c = c + (char(115));
+// 	c = c + (chara(115));
 // 	tp.x = tp.x - (FONT_SPACE);
-// 	// let c2 = smoothStep(0.0, 1.0, c );
+// 	// let c2 = smoothstep(0.0, 1.0, c );
 
 // 	vColor = mix(vColor, drawColor, c);
 // } 
@@ -383,9 +383,9 @@
 // 		10. *  (box_pos.x +1. + lspace) + poz.x, 
 // 		10. * (-box_pos.y +1.) - 0.0 + poz.y
 // 	) ;
-// 	c = c + (char(114)); // r
+// 	c = c + (chara(114)); // r
 // 	tp.x = tp.x - (FONT_SPACE);
-// 	c = c + (char(58)); // colon
+// 	c = c + (chara(58)); // colon
 // 	tp.x = tp.x - (FONT_SPACE);
 // 	WriteFloatBox(value.r, 3, decimal_places, alpha );
 
@@ -394,9 +394,9 @@
 // 		10. *  ((box_pos.x +1. + lspace)) + poz.x, 
 // 		10. * (-box_pos.y +1. ) + 1.0 + poz.y,
 // 	) ;
-// 	c = c + (char(103)); // g
+// 	c = c + (chara(103)); // g
 // 	tp.x = tp.x - (FONT_SPACE);
-// 	c = c + (char(58)); // colon
+// 	c = c + (chara(58)); // colon
 // 	tp.x = tp.x - (FONT_SPACE);
 // 	WriteFloatBox(value.g, 3, decimal_places, alpha );
 
@@ -405,9 +405,9 @@
 // 		10. *  (box_pos.x +1. + lspace) + poz.x, 
 // 		10. * (-box_pos.y +1. ) + 2.0 + poz.y,
 // 		) ;
-// 	c = c + (char(98)); // b
+// 	c = c + (chara(98)); // b
 // 	tp.x = tp.x - (FONT_SPACE);
-// 	c = c + (char(58)); // colon
+// 	c = c + (chara(58)); // colon
 // 	tp.x = tp.x - (FONT_SPACE);
 // 	WriteFloatBox(value.b, 4, decimal_places, alpha );
 
@@ -416,9 +416,9 @@
 // 		10. *  (box_pos.x +1. + lspace) + poz.x, 
 // 		10. * (-box_pos.y +1. ) + 3.0 + poz.y,
 // 	) ;
-// 	c = c + (char(97)); // a
+// 	c = c + (chara(97)); // a
 // 	tp.x = tp.x - (FONT_SPACE);
-// 	c = c + (char(58)); // colon
+// 	c = c + (chara(58)); // colon
 // 	tp.x = tp.x - (FONT_SPACE);
 // 	WriteFloatBox(value.a, 4, decimal_places, alpha );
 
@@ -433,7 +433,7 @@
 // }
 
 // fn ring(pos: vec2<f32>, radius: f32, thick: f32) -> f32 {
-// 	return mix(1., 0., smoothStep(thick, thick + 0.01, abs(length(uv - pos) - radius)));
+// 	return mix(1., 0., smoothstep(thick, thick + 0.01, abs(length(uv - pos) - radius)));
 // } 
 
 // fn sdCircle(p: vec2<f32>, c: vec2<f32>, r: f32) -> f32 {
@@ -446,7 +446,7 @@
 
 // 	let alpha = 0.75;
 // 	let ring_dist = sdCircle(vec2<f32>(location) , mouse_click_poz, 2.3);
-// 	let d = smoothStep(0.5, 1.5, abs(ring_dist - 1.));
+// 	let d = smoothstep(0.5, 1.5, abs(ring_dist - 1.));
 // 	vColor = mix(vColor, headColor,   (1. - d) * alpha );
 // }
 
@@ -483,16 +483,16 @@
 // 		alpha = 1.0;
 // 	}
 
-// 	let d = smoothStep(0.5, 1.5, segment1);
+// 	let d = smoothstep(0.5, 1.5, segment1);
 // 	vColor = mix(vColor, headColor, (1.0 -  d) * alpha );
 
-// 	let d = smoothStep(0.5, 1.5, segment2);
+// 	let d = smoothstep(0.5, 1.5, segment2);
 // 	vColor = mix(vColor, headColor, (1.0 -  d) * alpha );
 
-// 	let d = smoothStep(0.5, 1.5, segment3);
+// 	let d = smoothstep(0.5, 1.5, segment3);
 // 	vColor = mix(vColor, headColor, (1.0 -  d) * alpha );
 
-// 	let d = smoothStep(0.5, 1.5, segment4);
+// 	let d = smoothstep(0.5, 1.5, segment4);
 // 	vColor = mix(vColor, headColor, (1.0 -  d) * alpha );
 // }
 
@@ -534,7 +534,7 @@
 
 
 // 	WriteIntegerBack(&resx);
-// 	c = c + (char(28));
+// 	c = c + (chara(28));
 // 	tp.x = tp.x + 0. * (FONT_SPACE);
 // 	WriteIntegerBack(&resy);
 
@@ -571,9 +571,8 @@
 // 	return fragColor;
 // } 
 
-
-[[stage(compute), workgroup_size(8, 8, 1)]]
-fn update([[builtin(global_invocation_id)]] invocation_id: vec3<u32>) {
+@compute @workgroup_size(8, 8, 1)
+fn update(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     let location = vec2<i32>(i32(invocation_id.x), i32(invocation_id.y));
 	
 	let y_inverted_location = vec2<i32>((location.x), i32(uni.iResolution.y) - (location.y));

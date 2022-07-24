@@ -1,9 +1,10 @@
 use bevy::{
     prelude::*,
     render::{
+        extract_resource::ExtractResource,
         render_asset::RenderAssets,
         render_graph::{self},
-        render_resource::{std140::AsStd140, *},
+        render_resource::*,
         renderer::{RenderContext, RenderDevice},
     },
 };
@@ -32,7 +33,7 @@ struct TextureABindGroup {
 //     // bind_group: Option<BindGroup>,
 // }
 
-#[derive(Deref)]
+#[derive(Clone, Deref, ExtractResource)]
 pub struct TextureA(pub Handle<Image>);
 
 // pub struct TextureAPipeline {
@@ -107,9 +108,9 @@ pub struct TextureA(pub Handle<Image>);
 //     }
 // }
 
-pub fn extract_texture_a(mut commands: Commands, image: Res<TextureA>) {
-    commands.insert_resource(TextureA(image.clone()));
-}
+// pub fn extract_texture_a(mut commands: Commands, image: Res<TextureA>) {
+//     commands.insert_resource(TextureA(image.clone()));
+// }
 
 pub fn queue_bind_group_a(
     mut commands: Commands,
@@ -253,7 +254,7 @@ impl render_graph::Node for TextureANode {
                     .get_compute_pipeline(init_pipeline_cache)
                     .unwrap();
                 pass.set_pipeline(init_pipeline);
-                pass.dispatch(
+                pass.dispatch_workgroups(
                     canvas_size.width / WORKGROUP_SIZE,
                     canvas_size.height / WORKGROUP_SIZE,
                     1,
@@ -265,7 +266,7 @@ impl render_graph::Node for TextureANode {
                     .get_compute_pipeline(update_pipeline_cache)
                     .unwrap();
                 pass.set_pipeline(update_pipeline);
-                pass.dispatch(
+                pass.dispatch_workgroups(
                     canvas_size.width / WORKGROUP_SIZE,
                     canvas_size.height / WORKGROUP_SIZE,
                     1,

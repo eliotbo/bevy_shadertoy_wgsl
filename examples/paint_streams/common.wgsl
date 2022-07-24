@@ -71,17 +71,17 @@ fn sdBox(p: vec2<f32>, b: vec2<f32>) -> f32 {
 // 	return uintBitsToFloat(X);
 // } 
 
-// fn decode(&self, place: u8, precision: u8) -> f32 {
-//     let value_u32 = self >> (place - precision);
+// fn decode(&self, place: u8, precis: u8) -> f32 {
+//     let value_u32 = self >> (place - precis);
 
 //     let mut mask = u32::MAX;
-//     if precision < 32 {
-//         mask = (1 << (precision)) - 1;
+//     if precis < 32 {
+//         mask = (1 << (precis)) - 1;
 //     }
 
 //     // println!("mask: {:#0b}", value_u32);
 //     let masked_value_u32 = value_u32 & mask;
-//     let value_f32 = masked_value_u32 as f32 / ((1u32 << (precision - 1u8)) as f32);
+//     let value_f32 = masked_value_u32 as f32 / ((1u32 << (precis - 1u8)) as f32);
 
 //     value_f32
 // }
@@ -109,16 +109,16 @@ fn encode(x: vec2<f32>) -> f32 {
 
 
 
-fn decode2(input: u32, place: u32, precision: u32) -> f32 {
-    let value_u32 = input >> (place - precision);
+fn decode2(input: u32, place: u32, precis: u32) -> f32 {
+    let value_u32 = input >> (place - precis);
 
     var mask: u32 = 4294967295u;
-    if (precision < 32u) {
-        mask = (1u << precision) - 1u;
+    if (precis < 32u) {
+        mask = (1u << precis) - 1u;
     }
 
     let masked_value_u32 = value_u32 & mask;
-    let max_val = 1u << (precision - 1u);
+    let max_val = 1u << (precis - 1u);
     let value_f32 = f32(masked_value_u32) / f32(max_val) ;
 
     return value_f32;
@@ -131,17 +131,17 @@ fn decode1uToVec2(q: f32) -> vec2<f32> {
     return vec2<f32>(x, y) * 2. - 1.;
 }
 
-fn encode2(value: f32, input2: u32, place: u32, precision: u32) -> u32 {
+fn encode2(value: f32, input2: u32, place: u32, precis: u32) -> u32 {
     var input = input2;
-    // let value_f32_normalized = value * f32(1u, 32u << (precision - 1u)) ;
-    let value_f32_normalized = value * f32((1u << (precision - 1u)));
-    let delta_bits = u32(place - precision);
+    // let value_f32_normalized = value * f32(1u, 32u << (precis - 1u)) ;
+    let value_f32_normalized = value * f32((1u << (precis - 1u)));
+    let delta_bits = u32(place - precis);
     let value_u32 = u32(value_f32_normalized) << delta_bits;
 
     var mask: u32 = 0u;
 
-    if (precision < 32u) {
-        mask = 4294967295u - (((1u << precision) - 1u) << (place - precision));
+    if (precis < 32u) {
+        mask = 4294967295u - (((1u << precis) - 1u) << (place - precis));
     }
 
     let input = (input2 & mask) | value_u32;
@@ -159,9 +159,9 @@ fn encodeVec2To1u(value: vec2<f32>) -> u32 {
 }
 
 struct particle {
-	X: vec2<f32>;
-	V: vec2<f32>;
-	M: vec2<f32>;
+	X: vec2<f32>,
+	V: vec2<f32>,
+	M: vec2<f32>,
 };
 
 fn getParticle(data: vec4<f32>, pos: vec2<f32>) -> particle {
@@ -220,11 +220,11 @@ fn distribution(x: vec2<f32>, p: vec2<f32>, K: f32) -> vec3<f32> {
     return vec3<f32>(0.5 * (omin + omax), (omax.x - omin.x) * (omax.y - omin.y) / (K * K));
 } 
 
-struct particle {
-	X: vec2<f32>;
-	V: vec2<f32>;
-	M: vec2<f32>;
-};
+// struct particle {
+// 	X: vec2<f32>,
+// 	V: vec2<f32>,
+// 	M: vec2<f32>,
+// };
 
 // fn fromLinear(linearRGB: vec4<f32>) -> vec4<f32> {
 //     let cutoff: vec4<f32> = vec4<f32>(linearRGB < vec4<f32>(0.0031308));
