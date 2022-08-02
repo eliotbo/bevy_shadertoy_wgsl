@@ -66,6 +66,7 @@ pub struct ShadertoyCanvas {
 pub struct ShadertoyTextures {
     font_texture_handle: Handle<Image>,
     rgba_noise_256_handle: Handle<Image>,
+    blue_noise_handle: Handle<Image>,
 }
 
 #[derive(Clone, ExtractResource)]
@@ -123,9 +124,12 @@ fn setup(
 
     let font_texture_handle: Handle<Image> = asset_server.load("textures/font.png");
     let rgba_noise_256_handle: Handle<Image> = asset_server.load("textures/rgba_noise_256.png");
+    let blue_noise_handle: Handle<Image> = asset_server.load("textures/blue_noise.png");
+
     commands.insert_resource(ShadertoyTextures {
         font_texture_handle,
         rgba_noise_256_handle,
+        blue_noise_handle,
     });
 
     let window = windows.primary();
@@ -817,6 +821,23 @@ impl ShadertoyPipelines {
                         ty: BindingType::Sampler(SamplerBindingType::Filtering),
                         count: None,
                     },
+                    // blue noise texture
+                    BindGroupLayoutEntry {
+                        binding: 10,
+                        visibility: ShaderStages::COMPUTE,
+                        ty: BindingType::Texture {
+                            sample_type: TextureSampleType::Float { filterable: true },
+                            view_dimension: TextureViewDimension::D2,
+                            multisampled: false,
+                        },
+                        count: None,
+                    },
+                    BindGroupLayoutEntry {
+                        binding: 11,
+                        visibility: ShaderStages::COMPUTE,
+                        ty: BindingType::Sampler(SamplerBindingType::Filtering),
+                        count: None,
+                    },
                 ],
             });
 
@@ -1121,6 +1142,7 @@ fn queue_bind_group(
     let main_view = &gpu_images[&main_image.0];
     let font_view = &gpu_images[&shadertoy_textures.font_texture_handle];
     let rgba_noise_256_view = &gpu_images[&shadertoy_textures.rgba_noise_256_handle];
+    let blue_noise_view = &gpu_images[&shadertoy_textures.blue_noise_handle];
 
     let texture_a_view = &gpu_images[&texture_a_image.0];
     let texture_b_view = &gpu_images[&texture_b_image.0];
@@ -1175,6 +1197,14 @@ fn queue_bind_group(
             BindGroupEntry {
                 binding: 9,
                 resource: BindingResource::Sampler(&rgba_noise_256_view.sampler),
+            },
+            BindGroupEntry {
+                binding: 10,
+                resource: BindingResource::TextureView(&blue_noise_view.texture_view),
+            },
+            BindGroupEntry {
+                binding: 11,
+                resource: BindingResource::Sampler(&blue_noise_view.sampler),
             },
         ],
     });
