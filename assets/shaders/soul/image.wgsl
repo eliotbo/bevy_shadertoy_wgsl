@@ -52,6 +52,12 @@ var rgba_noise_256_texture: texture_2d<f32>;
 @group(0) @binding(9)
 var rgba_noise_256_texture_sampler: sampler;
 
+@group(0) @binding(10)
+var blue_noise_texture: texture_2d<f32>;
+
+@group(0) @binding(11)
+var blue_noise_texture_sampler: sampler;
+
 
 
 

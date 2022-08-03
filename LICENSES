@@ -9,7 +9,7 @@ at your option.
 //
 //
 
-The licenses for the examples taken from shadertoy.com are:
+The licenses for the examples taken from shadertoy.com are the following:
 
 seascape ->         Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
 fire2 ->            MIT License
@@ -18,6 +18,8 @@ sunset ->           MIT License
 fluid ->            License Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License
 paint_streams ->    License Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License
 dry_ice ->          License Creative Commons Attribution-NonCommercial-ShareAlike 3.0
+soul ->             Attribution-NonCommercial 2.0 Generic (CC BY-NC 2.0)
+liquid_toy ->       Attribution-NonCommercial 2.0 Generic (CC BY-NC 2.0)
 
 authors (full name or Shadertoy username):
 seascape ->         TDM
@@ -27,6 +29,8 @@ sunset ->           Dimas Leenman
 fluid ->            Wyatt Flanders
 paint_streams ->    michael0884
 dry_ice ->          David Gallardo
+soul ->             leon
+liquid_toy ->       leon
 
 MIT License
 

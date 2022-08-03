@@ -1,3 +1,7 @@
+// Original shader by leon
+// https://www.shadertoy.com/view/fljBWc
+// Attribution-NonCommercial 2.0 Generic (CC BY-NC 2.0)
+
 use bevy::{
     diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
     prelude::*,
