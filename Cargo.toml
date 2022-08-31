@@ -37,11 +37,6 @@ name = "paint_streams"
 path = "examples/paint_streams/paint_streams.rs"
 
 [[example]]
-name = "clouds"
-path = "examples/clouds/clouds.rs"
-
-
-[[example]]
 name = "minimal"
 path = "examples/minimal/minimal.rs"
 
@@ -72,3 +67,7 @@ path = "examples/fire/fire.rs"
 [[example]]
 name = "dry_ice"
 path = "examples/dry_ice/dry_ice.rs"
+
+[[example]]
+name = "sunset"
+path = "examples/sunset/sunset.rs"
