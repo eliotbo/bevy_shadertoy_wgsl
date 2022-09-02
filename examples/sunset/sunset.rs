@@ -19,9 +19,11 @@ fn main() {
             // present_mode: PresentMode::Immediate, // uncomment for unthrottled FPS
             ..default()
         })
-        .insert_resource(CanvasSize {
-            width: (960.0_f32 * BORDERS).floor() as u32,
-            height: (600.0_f32 * BORDERS).floor() as u32,
+        .insert_resource(ShadertoyCanvas {
+            width: 960. as u32,
+            height: 600.0 as u32,
+            borders: 0.0,
+            position: Vec3::new(0.0, 0.0, 0.0),
         })
         .add_plugins(DefaultPlugins)
         .add_plugin(ShadertoyPlugin)
