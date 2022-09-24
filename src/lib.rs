@@ -30,6 +30,8 @@ use bevy::{
     },
     window::WindowResized,
 };
+// run the following to avoid the "nage skip function" warning at every frame
+// RUST_LOG=wgpu=error,naga=warn,info  cargo run --release --features bevy/dynamic --example simpler_particles
 
 use crevice::std140::AsStd140;
 

@@ -1,4 +1,4 @@
-// grid size = 
+// RUST_LOG="wgpu=error,naga=warn,info" cargo run --release --example simpler_particles  
 
 fn Integrate(
 	ch: texture_storage_2d<rgba32float, read_write>, 

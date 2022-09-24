@@ -9,23 +9,30 @@ use bevy::{
 
 use bevy_shadertoy_wgsl::*;
 
+mod fps;
+
 fn main() {
     let mut app = App::new();
 
     app.insert_resource(ClearColor(Color::GRAY))
         .insert_resource(WindowDescriptor {
-            width: 960.,
-            height: 600.,
+            // width: 960.,
+            // height: 600.,
+            width: 1200.,
+            height: 800.,
             cursor_visible: true,
-            // present_mode: PresentMode::Immediate, // uncomment for unthrottled FPS
+            present_mode: bevy::window::PresentMode::Immediate, // uncomment for unthrottled FPS
             ..default()
         })
         .insert_resource(ShadertoyCanvas {
-            width: 960. as u32,
-            height: 600.0 as u32,
-            borders: 0.2,
+            // width: 960. as u32,
+            // height: 600.0 as u32,
+            width: 1200,
+            height: 800,
+            borders: 0.02,
             position: Vec3::new(0.0, 0.0, 0.0),
         })
+        .add_plugin(fps::FPSPlugin)
         .add_plugins(DefaultPlugins)
         .add_plugin(ShadertoyPlugin)
         .add_plugin(FrameTimeDiagnosticsPlugin::default())

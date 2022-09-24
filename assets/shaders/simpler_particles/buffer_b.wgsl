@@ -34,11 +34,14 @@ var buffer_d: texture_storage_2d<rgba32float, read_write>;
 
 
 
+// RUST_LOG="wgpu=error,naga=warn,info" cargo run --release --example simpler_particles  
+
 var<private> R: vec2<f32>;
 var<private> Mouse: vec4<f32>;
 var<private> time: f32;
 var<private> s0: vec4<u32>;
-let particle_size: f32 = 10.5;
+// let particle_size: f32 = 10.5;
+let particle_size: f32 = 2.5;
 let relax_value: f32 = 0.3;
 
 fn Rot(ang: f32) -> mat2x2<f32> {
@@ -217,7 +220,8 @@ fn Simulation(
 	pos: vec2<f32>
 )  {
 	var F: vec2<f32> = vec2<f32>(0.);
-	var I: i32 = i32(ceil(10.5));
+	var I: i32 = i32(ceil(particle_size));
+	// var I: i32 = 4;
 
 	for (var i: i32 = -I; i <= I; i = i + 1) {
 	for (var j: i32 = -I; j <= I; j = j + 1) {
