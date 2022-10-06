@@ -9,6 +9,7 @@ cargo run --release --features bevy/dynamic --example paint_streams
 ```
 ![](showcase.gif)
 
+Here is a GLSL to WGLSL converter that might be helpful: [https://eliotbo.github.io/glsl2wgsl/](https://eliotbo.github.io/glsl2wgsl/)
 
 TODO: make compatible with WASM
 
